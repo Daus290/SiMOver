@@ -255,7 +255,14 @@ L. PROMPT 31 - PENERAPAN PROFIL STREAM SESUAI KE SELURUH CCTV BANJARBARU (12 OKT
    - Aset Gambar: Dihapus file kembar `gedung-dishub-asli.jpg` & `peta-preview-banjarbaru.jpg`. Hero beranda memakai WebP 428 KB (dari 2,46 MB PNG).
    - README: Disusun ulang lengkap sebagai panduan proyek SiMover.
 
-12. ATURAN KERAS & KONVENSI PROYEK (WAJIB DIPATUHI SESI BARU)
+12. CAPAIAN PROMPT 48 (PUSH GITHUB TANPA GIT LFS & DUMP DATABASE)
+--------------------------------------------------------------------------------
+   - Push GitHub Berhasil: Branch `main` terkirim penuh ke https://github.com/Daus290/SiMOver.git tanpa Git LFS.
+   - Binary Portable: FFmpeg/FFprobe Windows dipaketkan ke `tools/ffmpeg/ffmpeg-windows.zip` (74,05 MiB, di bawah batas 100 MiB GitHub) disertai skrip pemulihan `Restore-FFmpeg.ps1`. File asli di `writable/bin/` tetap utuh dan terverifikasi.
+   - Dump Database: `database/dumps/monitoring_dishub.sql` disertakan lengkap dengan data akun admin dan hash password bcrypt sesuai otorisasi pengguna. Berkas sumber Downloads tetap utuh.
+   - Keamanan: `.env`, cache HLS, dan session terlindungi di luar Git.
+
+13. ATURAN KERAS & KONVENSI PROYEK (WAJIB DIPATUHI SESI BARU)
 --------------------------------------------------------------------------------
 1. JANGAN PERNAH MENGUBAH / MENCOBA EKSPERIMEN BUFFERING LAG CCTV LAGI:
    Pengguna menerima jeda wajar browser (~5-10 detik) dibandingkan Vivotek NVR asli.
@@ -267,6 +274,7 @@ L. PROMPT 31 - PENERAPAN PROFIL STREAM SESUAI KE SELURUH CCTV BANJARBARU (12 OKT
    Selalu gunakan WMI `Win32_Process.Create` di `vivotek_relay.ps1`. Jangan pernah menggunakan `Start-Process cmd.exe` biasa.
 4. PORTABEL BINARY:
    FFmpeg selalu dipanggil dari path portabel proyek: `writable\bin\ffmpeg.exe`.
+   Untuk clone baru, jalankan `tools/ffmpeg/Restore-FFmpeg.ps1`.
 5. STYLING & DESAIN:
    Gunakan Bootstrap 5.3 + Vanilla CSS di `style.css`. Jangan pernah memakai TailwindCSS.
    Tipografi publik wajib 'Source Sans 3'.

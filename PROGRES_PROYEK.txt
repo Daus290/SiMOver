@@ -925,7 +925,36 @@ Status: SELESAI & TERVERIFIKASI PENUH (100% NON-REGRESI)
    - `docs/LAPORAN_PERAPIAN_PROMPT46.md` mendokumentasikan rincian lengkap pengerjaan.
 
 --------------------------------------------------------------------------------
-11. ATURAN KERAS & KONVENSI PROYEK (WAJIB DIPATUHI SESI BERIKUTNYA)
+11. LAPORAN PENGERJAAN PROMPT 48 (PUSH GITHUB TANPA GIT LFS & DUMP DATABASE)
+--------------------------------------------------------------------------------
+Tanggal Selesai: 19 Oktober 2026
+Status: SELESAI & TERVERIFIKASI PENUH (PUSH SUKSES KE ORIGIN MAIN)
+
+1. REPOSITORI & BRANCH:
+   - Remote URL: https://github.com/Daus290/SiMOver.git
+   - Branch: `main` (tracking origin/main)
+   - Commit Hash Terkirim: `46f3719`
+   - Git LFS: TIDAK DIGUNAKAN (seluruh berkas tercatat sebagai objek Git standar).
+
+2. ARSIP PORTABEL BINARY FFMPEG/FFPROBE:
+   - Dibuat arsip tunggal: `tools/ffmpeg/ffmpeg-windows.zip` (77.642.594 bytes / 74,05 MiB).
+   - Di bawah batas ukuran GitHub (100 MiB / 104.857.600 bytes).
+   - Menyertakan `tools/ffmpeg/manifest.json` dan skrip pemulihan `tools/ffmpeg/Restore-FFmpeg.ps1`.
+   - File binary asli di `writable/bin/` (ffmpeg.exe dan ffprobe.exe) tetap utuh di komputer lokal, tidak dimodifikasi, dan SHA-256 terverifikasi 100% cocok.
+
+3. DUMP DATABASE SQL & DATA AKUN:
+   - Salinan utuh dari `C:\Users\Daus\Downloads\monitoring_dishub (1).sql` ditempatkan di `database/dumps/monitoring_dishub.sql` (3.065 bytes, SHA-256 cocok byte-for-byte).
+   - Memuat struktur tabel, data akun admin, nilai password hash bcrypt, dan riwayat migrations sesuai otorisasi eksplisit pengguna.
+   - Disertai dokumentasi `database/README.md` tentang petunjuk impor aman.
+   - Berkas asli di Downloads tetap utuh dan tidak pernah diimpor ke database lokal aktif.
+
+4. KONFIGURASI GIT & KEAMANAN:
+   - `.gitignore` diperbarui untuk mengabaikan `/writable/bin/*` dan selective ignore `*.zip` / `*.sql`.
+   - `.gitattributes` ditambahkan untuk mencegah konversi CRLF pada zip dan dump SQL serta memastikan filter LFS tidak digunakan.
+   - Seluruh secret `.env`, cache HLS, dan sesi aktif tetap terlindungi di luar Git.
+
+--------------------------------------------------------------------------------
+12. ATURAN KERAS & KONVENSI PROYEK (WAJIB DIPATUHI SESI BERIKUTNYA)
 --------------------------------------------------------------------------------
 1. STATUS MANUAL OVERRIDE KAMERA:
    - `BJB-ROULIN-F3` WAJIB berstatus 'unavailable' (Belum Tersedia di Lapangan). Jangan diubah ke aktif.
@@ -935,6 +964,7 @@ Status: SELESAI & TERVERIFIKASI PENUH (100% NON-REGRESI)
    - Jangan pernah menggunakan `Start-Process cmd.exe` biasa tanpa menyembunyikan jendela karena akan memunculkan popup CMD yang mengganggu layar pengguna. Selalu gunakan WMI `Win32_Process.Create` di `vivotek_relay.ps1`.
 3. PORTABEL BINARY:
    - FFmpeg selalu dipanggil dari path portabel proyek: `writable\bin\ffmpeg.exe`.
+   - Jika melakukan clone di komputer baru, jalankan `tools/ffmpeg/Restore-FFmpeg.ps1`.
 4. DESAIN & STYLING:
    - Gunakan estetika modern clean boxy (border tegas, sudut rapi `rounded-3` atau sharp, shadow halus).
    - Jangan gunakan TailwindCSS. Semua styling menggunakan Bootstrap 5.3 + Vanilla CSS di `style.css`.
@@ -947,6 +977,7 @@ Status: SELESAI & TERVERIFIKASI PENUH (100% NON-REGRESI)
 DOKUMEN INI SIAP DISALIN KE SESI CHAT BARU ANTIGRAVITY.
 SELURUH SISTEM, FILE, DAN DEPENDENSI BERADA DALAM KONDISI STABIL & TERUJI.
 ================================================================================
+
 
 
 
