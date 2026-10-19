@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="100%" height="100%">
+  <!-- Mobil Pickup Bak Terbuka -->
+  <rect width="320" height="200" rx="12" fill="#f8fafc"/>
+  <g transform="translate(25, 35)">
+    <!-- Cabin Front Hood & Nose -->
+    <path d="M 20,85 L 50,85 L 75,55 L 115,55 L 115,105 L 20,105 Z" fill="#0284c7"/>
+    <!-- Windshield & Side Window -->
+    <path d="M 55,80 L 75,60 L 110,60 L 110,80 Z" fill="#bae6fd"/>
+    <!-- Front Bumper & Headlight -->
+    <rect x="15" y="95" width="8" height="10" rx="2" fill="#94a3b8"/>
+    <rect x="20" y="86" width="6" height="7" rx="1" fill="#fde047"/>
+    
+    <!-- Open Cargo Bed (Bak Terbuka) -->
+    <rect x="118" y="75" width="135" height="30" rx="2" fill="#0369a1"/>
+    <!-- Bak Guard Rail / Terpal Frame -->
+    <line x1="116" y1="58" x2="116" y2="75" stroke="#64748b" stroke-width="3"/>
+    <line x1="250" y1="58" x2="250" y2="75" stroke="#64748b" stroke-width="3"/>
+    <line x1="116" y1="58" x2="250" y2="58" stroke="#64748b" stroke-width="3"/>
+    
+    <!-- Cargo inside Bak (Boxes / Crates) -->
+    <rect x="125" y="62" width="45" height="18" fill="#d97706" rx="2"/>
+    <rect x="175" y="66" width="35" height="14" fill="#b45309" rx="2"/>
+    <rect x="215" y="60" width="30" height="20" fill="#f59e0b" rx="2"/>
+
+    <!-- Chassis Line -->
+    <rect x="25" y="105" width="225" height="6" fill="#1e293b"/>
+    
+    <!-- Wheels -->
+    <circle cx="65" cy="112" r="15" fill="#0f172a"/>
+    <circle cx="65" cy="112" r="7" fill="#cbd5e1"/>
+    
+    <circle cx="205" cy="112" r="15" fill="#0f172a"/>
+    <circle cx="205" cy="112" r="7" fill="#cbd5e1"/>
+  </g>
+</svg>

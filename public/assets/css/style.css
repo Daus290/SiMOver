@@ -1,0 +1,758 @@
+/* Modular Page Stylesheets */
+@import url('pages/beranda.css');
+@import url('pages/cctv.css');
+@import url('pages/peta.css');
+@import url('pages/informasi.css');
+
+/* ==========================================================================
+   SISTEM MONITORING OVER DIMENSION - DINAS PERHUBUNGAN KOTA BANJARBARU
+   Stylesheet Pengunjung: Tampilan Modern, Oranye Tegas, & Ikon Pendukung
+   ========================================================================== */
+
+:root {
+  /* Palet Warna Utama (Tahap 4) */
+  --dishub-orange: #F97316;
+  /* Oranye utama tegas */
+  --dishub-orange-dark: #EA580C;
+  /* Oranye gelap */
+  --dishub-orange-tint: #FFF7ED;
+  /* Latar aksen oranye lembut */
+  --dishub-blue-dark: #0F172A;
+  /* Navy gelap untuk teks utama & footer */
+  --dishub-footer-bottom: #1E293B;
+  /* Navy sedikit lebih terang untuk sub-footer */
+  --dishub-bg-page: #F8FAFC;
+  /* Latar halaman off-white netral */
+
+  /* Warna Netral & Permukaan */
+  --dishub-surface: #FFFFFF;
+  --dishub-border: #E2E8F0;
+  --dishub-border-subtle: #F1F5F9;
+  --dishub-text-main: #0F172A;
+  --dishub-text-body: #334155;
+  --dishub-text-muted: #64748B;
+
+  /* Warna Data Semantik */
+  --dishub-status-online: #16A34A;
+  /* Hijau */
+  --dishub-status-offline: #DC2626;
+  /* Merah */
+  --dishub-data-normal: #16A34A;
+  /* Hijau */
+  --dishub-data-kontainer: #2563EB;
+  /* Biru */
+  --dishub-data-overdim: #F97316;
+  /* Oranye */
+
+  /* Desain Radius Halaman Pengunjung (Prompt 44) */
+  --public-button-radius: 6px;
+  --public-button-sm-radius: 4px;
+  --public-card-radius: 8px;
+  --public-stat-radius: 14px;
+
+  --dishub-radius: var(--public-button-radius);
+  --dishub-radius-lg: var(--public-card-radius);
+}
+
+/* ==========================================================================
+   RESET & DASAR
+   ========================================================================== */
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--dishub-bg-page);
+  color: var(--dishub-text-body);
+  line-height: 1.6;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Tipografi Halaman Publik: Source Sans 3 (Elegan, Tenang, Formal & Mudah Dibaca) */
+body.public-site {
+  --dishub-radius: var(--public-button-radius);
+  --dishub-radius-lg: var(--public-card-radius);
+  font-family: 'Source Sans 3', system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --bs-body-font-family: 'Source Sans 3', system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+}
+
+body.public-site h1,
+body.public-site h2,
+body.public-site h3,
+body.public-site h4,
+body.public-site h5,
+body.public-site h6,
+body.public-site button,
+body.public-site input,
+body.public-site select,
+body.public-site textarea,
+body.public-site .btn,
+body.public-site .form-control {
+  font-family: 'Source Sans 3', system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+}
+
+main {
+  flex: 1 0 auto;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--dishub-text-main);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+a {
+  color: var(--dishub-orange);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--dishub-orange-dark);
+}
+
+/* ==========================================================================
+   NAVBAR: Solid Oranye (#EA580C) dengan Highlight Garis Bawah Figma
+   ========================================================================== */
+.navbar-dishub {
+  background-color: var(--dishub-orange-dark);
+  padding: 0.65rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.navbar-brand-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.nav-link-dishub {
+  font-weight: 400;
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.88) !important;
+  padding: 0.5rem 0.85rem !important;
+  position: relative;
+  transition: color 0.2s ease, text-shadow 0.2s ease, opacity 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-link-dishub i {
+  font-size: 0.95rem;
+  opacity: 0.85;
+}
+
+.nav-link-dishub:hover,
+.nav-link-dishub:focus-visible {
+  color: #FFFFFF !important;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.95), 0 0 16px rgba(255, 255, 255, 0.6), 0 0 24px rgba(255, 255, 255, 0.35);
+}
+
+.nav-link-dishub:hover i {
+  opacity: 1;
+}
+
+/* Navlink Aktif: Tulisan normal (tidak dipertebal) & garis bawah tipis */
+.nav-link-dishub.active {
+  color: #FFFFFF !important;
+  font-weight: 400;
+}
+
+.nav-link-dishub.active i {
+  opacity: 1;
+}
+
+.nav-link-dishub.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0px;
+  left: 0.85rem;
+  right: 0.85rem;
+  height: 1.2px;
+  background-color: #FFFFFF;
+  border-radius: 0;
+}
+
+/* ==========================================================================
+   HERO SECTIONS: Depth Gradient Navy-Blue-Orange
+   ========================================================================== */
+.hero-dishub {
+  position: relative;
+  background-color: var(--dishub-blue-dark);
+  background-size: cover;
+  background-position: center;
+  color: #FFFFFF;
+  padding: 6.5rem 0 5.75rem;
+  min-height: 480px;
+  display: flex;
+  align-items: center;
+}
+
+.hero-overlay-depth {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.94) 0%, rgba(15, 23, 42, 0.84) 45%, rgba(30, 58, 138, 0.65) 75%, rgba(249, 115, 22, 0.3) 100%);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 0.85rem;
+  letter-spacing: -0.3px;
+}
+
+.hero-desc {
+  font-size: 1.05rem;
+  color: #E2E8F0;
+  max-width: 640px;
+  line-height: 1.6;
+  margin-bottom: 1.75rem;
+}
+
+/* ==========================================================================
+   TOMBOL (Oranye Tegas dengan Ikon Pendukung)
+   ========================================================================== */
+.btn-dishub-primary {
+  background-color: var(--dishub-orange);
+  border: 1px solid var(--dishub-orange);
+  color: #FFFFFF;
+  font-weight: 600;
+  padding: 0.55rem 1.25rem;
+  border-radius: var(--dishub-radius);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 2px 6px rgba(249, 115, 22, 0.25);
+  text-decoration: none;
+}
+
+.btn-dishub-primary:hover {
+  background-color: var(--dishub-orange-dark);
+  border-color: var(--dishub-orange-dark);
+  color: #FFFFFF;
+  box-shadow: 0 4px 10px rgba(249, 115, 22, 0.35);
+  transform: translateY(-1.5px);
+}
+
+.btn-dishub-outline {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  color: #FFFFFF;
+  font-weight: 600;
+  padding: 0.55rem 1.25rem;
+  border-radius: var(--dishub-radius);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  text-decoration: none;
+  backdrop-filter: blur(2px);
+}
+
+.btn-dishub-outline:hover {
+  background-color: #FFFFFF;
+  color: var(--dishub-blue-dark);
+  border-color: #FFFFFF;
+  transform: translateY(-1.5px);
+}
+
+.btn-dishub-light {
+  background-color: var(--dishub-surface);
+  border: 1px solid var(--dishub-border);
+  color: var(--dishub-text-main);
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  border-radius: var(--dishub-radius);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.btn-dishub-light:hover {
+  background-color: var(--dishub-orange-tint);
+  border-color: var(--dishub-orange);
+  color: var(--dishub-orange-dark);
+  transform: translateY(-1.5px);
+}
+
+/* ==========================================================================
+   KARTU STATISTIK MODERN (Ikon, Accent Stripe, Hover Ringan)
+   ========================================================================== */
+.stat-card-modern {
+  background-color: var(--dishub-surface);
+  border: 1px solid var(--dishub-border);
+  border-radius: var(--dishub-radius-lg);
+  padding: 1.25rem 1.4rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  cursor: default;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-card-modern:hover {
+  transform: translateY(-2.5px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  border-color: #CBD5E1;
+}
+
+/* Garis accent tipis di atas */
+.stat-card-modern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3.5px;
+}
+
+.stat-card-modern.accent-cctv::before {
+  background-color: #6366F1;
+}
+
+.stat-card-modern.accent-total::before {
+  background-color: #0284C7;
+}
+
+.stat-card-modern.accent-overdim::before {
+  background-color: var(--dishub-orange);
+}
+
+.stat-card-modern.accent-normal::before {
+  background-color: var(--dishub-status-online);
+}
+
+.stat-card-modern.accent-kontainer::before {
+  background-color: var(--dishub-data-kontainer);
+}
+
+.stat-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  margin-bottom: 0.85rem;
+}
+
+.stat-icon-box.icon-cctv {
+  background-color: #EEF2FF;
+  color: #4F46E5;
+}
+
+.stat-icon-box.icon-total {
+  background-color: #E0F2FE;
+  color: #0284C7;
+}
+
+.stat-icon-box.icon-overdim {
+  background-color: #FFF7ED;
+  color: #EA580C;
+}
+
+.stat-icon-box.icon-normal {
+  background-color: #DCFCE7;
+  color: #16A34A;
+}
+
+.stat-icon-box.icon-kontainer {
+  background-color: #DBEAFE;
+  color: #2563EB;
+}
+
+.stat-num-modern {
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: var(--dishub-blue-dark);
+  line-height: 1.1;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label-modern {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--dishub-text-muted);
+}
+
+.stat-sub-modern {
+  font-size: 0.75rem;
+  color: #94A3B8;
+  margin-top: 0.35rem;
+}
+
+/* ==========================================================================
+   INFORMASI PEMANTAUAN (3 Kartu dengan Ikon Oranye Lembut)
+   ========================================================================== */
+.info-card-dishub {
+  background-color: var(--dishub-surface);
+  border: 1px solid var(--dishub-border);
+  border-radius: var(--dishub-radius-lg);
+  padding: 1.4rem;
+  height: 100%;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.info-card-dishub:hover {
+  transform: translateY(-2.5px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  border-color: #CBD5E1;
+}
+
+.info-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background-color: var(--dishub-orange-tint);
+  color: var(--dishub-orange-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+/* ==========================================================================
+   DASHBOARD KONTEN & GRAFIK
+   ========================================================================== */
+.card-plain {
+  background-color: var(--dishub-surface);
+  border: 1px solid var(--dishub-border);
+  border-radius: var(--dishub-radius-lg);
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.progress-track-clean {
+  height: 10px;
+  background-color: #E2E8F0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill-clean {
+  height: 100%;
+}
+
+/* ==========================================================================
+   FOOTER GELAP TAHAP 2 (#0F172A dengan Sub-Footer #1E293B)
+   ========================================================================== */
+.footer-dishub {
+  background-color: var(--dishub-blue-dark);
+  color: #E2E8F0;
+  padding-top: 3.5rem;
+  border-top: 3.5px solid var(--dishub-orange);
+  font-size: 0.875rem;
+}
+
+.footer-heading {
+  color: #FFFFFF;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.footer-links-clean {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links-clean li {
+  margin-bottom: 0.55rem;
+}
+
+.footer-links-clean a {
+  color: #CBD5E1;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.footer-links-clean a:hover {
+  color: var(--dishub-orange);
+}
+
+.footer-contact-clean {
+  color: #CBD5E1;
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+
+.footer-contact-clean i {
+  color: var(--dishub-orange);
+  font-size: 0.95rem;
+}
+
+.footer-contact-clean a {
+  color: #CBD5E1;
+  text-decoration: none;
+  transition: color 0.15s ease;
+  word-break: break-word;
+}
+
+.footer-contact-clean a:hover {
+  color: var(--dishub-orange);
+}
+
+.footer-bottom-bar {
+  background-color: var(--dishub-footer-bottom);
+  padding: 1.25rem 0;
+  margin-top: 2.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.footer-bottom-text {
+  font-size: 0.8125rem;
+  color: #94A3B8;
+}
+
+/* ==========================================================================
+   ACCESSIBILITY: REDUCED MOTION SUPPORT
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   RESPONSIVITAS
+   ========================================================================== */
+@media (max-width: 767.98px) {
+  .hero-dishub {
+    padding: 3rem 0 2.5rem;
+  }
+
+  .hero-title {
+    font-size: 1.85rem;
+  }
+
+  .stat-num-modern {
+    font-size: 1.85rem;
+  }
+}
+
+/* ==========================================================================
+   DESAIN ELEMEN PENGUNJUNG: SUDUT SEDIKIT ROUNDED (PROMPT 44)
+   - Tombol biasa: 6px (--public-button-radius), tombol kecil: 4px (--public-button-sm-radius)
+   - Kartu & panel konten: 8px (--public-card-radius)
+   - Kartu statistik & video player diselaraskan menjadi 8px
+   - Form input, select, & search tetap bersudut kotak tegas (0px)
+   ========================================================================== */
+
+/* 1. Form Input & Elemen Teks Tetap Bersudut Kotak */
+.form-control,
+.form-select,
+.input-group,
+.input-group-text,
+.search-field-dishub,
+.alert,
+.progress-track-clean,
+.accordion-item,
+.accordion-button {
+  border-radius: 0 !important;
+}
+
+/* 2. Tombol Halaman Pengunjung (6px, btn-sm & btn-detail 4px) */
+body.public-site .btn,
+body.public-site .btn:hover,
+body.public-site .btn:focus,
+body.public-site .btn:active,
+body.public-site .btn.active,
+body.public-site .btn:disabled,
+body.public-site .btn-dishub-primary,
+body.public-site .btn-dishub-primary:hover,
+body.public-site .btn-dishub-primary:focus,
+body.public-site .btn-dishub-primary:active,
+body.public-site .btn-dishub-outline,
+body.public-site .btn-dishub-outline:hover,
+body.public-site .btn-dishub-outline:focus,
+body.public-site .btn-dishub-outline:active,
+body.public-site .btn-dishub-light,
+body.public-site .btn-dishub-light:hover,
+body.public-site .btn-dishub-light:focus,
+body.public-site .btn-dishub-light:active,
+body.public-site .btn-filter,
+body.public-site .filter-btn,
+body.public-site .filter-btn:hover,
+body.public-site .filter-btn:focus,
+body.public-site .filter-btn.active,
+body.public-site .btn-stream-ctrl,
+body.public-site .btn-stream-type,
+body.public-site .btn-map-control,
+body.public-site .btn-map-control:hover,
+body.public-site .btn-map-control:focus,
+body.public-site .btn-map-control:active {
+  border-radius: var(--public-button-radius) !important;
+}
+
+body.public-site .btn-sm,
+body.public-site .btn-sm:hover,
+body.public-site .btn-sm:focus,
+body.public-site .btn-sm:active,
+body.public-site .btn-detail-rounded,
+body.public-site .btn-detail-rounded:hover,
+body.public-site .btn-detail-rounded:focus,
+body.public-site .btn-detail-rounded:active {
+  border-radius: var(--public-button-sm-radius) !important;
+}
+
+/* 3. Kartu dan Panel Konten Halaman Pengunjung (8px) */
+body.public-site .card,
+body.public-site .card-plain,
+body.public-site .info-card-dishub,
+body.public-site .cctv-card-simple,
+body.public-site .player-wrap,
+body.public-site .filter-bar,
+body.public-site .leaflet-map-wrapper:not(:fullscreen):not(:-webkit-full-screen):not(.is-fullscreen),
+body.public-site .leaflet-map-legend-box,
+body.public-site .modal-content,
+body.public-site .tentang-peran-card,
+body.public-site .dampak-card,
+body.public-site .odol-workflow-card,
+body.public-site .odol-vehicle-card,
+body.public-site .odol-photo-unit,
+body.public-site .odol-img-frame,
+body.public-site .live-video-box,
+body.public-site .map-canvas-box {
+  border-radius: var(--public-card-radius) !important;
+}
+
+/* Kartu Statistik Ringkasan: Dikembalikan ke Rounded Semula (14px) */
+body.public-site .stat-card-modern {
+  border-radius: var(--public-stat-radius, 14px) !important;
+  overflow: hidden;
+}
+
+/* 4. Tepi Gambar & Thumbnail Mengikuti Sudut Kartu */
+body.public-site .cctv-card-simple {
+  overflow: hidden;
+}
+
+body.public-site .cctv-thumb-wrap {
+  border-top-left-radius: calc(var(--public-card-radius) - 1px) !important;
+  border-top-right-radius: calc(var(--public-card-radius) - 1px) !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  overflow: hidden;
+}
+
+body.public-site .cctv-thumb-wrap img,
+body.public-site .cctv-thumb-placeholder,
+body.public-site .cctv-offline-box {
+  border-top-left-radius: calc(var(--public-card-radius) - 1px) !important;
+  border-top-right-radius: calc(var(--public-card-radius) - 1px) !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+body.public-site .dampak-img-wrap,
+body.public-site .dampak-card-img {
+  border-top-left-radius: calc(var(--public-card-radius) - 1px) !important;
+  border-top-right-radius: calc(var(--public-card-radius) - 1px) !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+body.public-site .player-wrap {
+  overflow: hidden;
+}
+
+body.public-site .player-screen,
+body.public-site .bjb-placeholder-screen {
+  border-top-left-radius: calc(var(--public-card-radius) - 1px) !important;
+  border-top-right-radius: calc(var(--public-card-radius) - 1px) !important;
+}
+
+body.public-site .modal-content {
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   PENGECUALIAN: Ikon-Ikon & Badge Tetap Sesuai Karakter Elemen
+   -------------------------------------------------------------------------- */
+.stat-icon-box,
+.info-icon-box,
+.admin-stat-icon {
+  border-radius: 10px !important;
+}
+
+/* Badge Status Tetap Kapsul */
+.cctv-status-badge {
+  border-radius: 999px !important;
+}
+
+.placeholder-icon-wrap {
+  border-radius: 50% !important;
+}
+
+.cctv-fav-toggle {
+  border-radius: var(--public-button-radius) !important;
+}
+
+.cctv-code-tag,
+.cctv-demo-tag,
+.player-tag {
+  border-radius: 4px !important;
+}
+
+.badge {
+  border-radius: 6px !important;
+}
+
+.badge.rounded-pill {
+  border-radius: 50rem !important;
+}
+
+/* --------------------------------------------------------------------------
+   PENGECUALIAN 3: Penanda Interaktif Peta Leaflet Tetap Rounded / Kapsul
+   (Marker Simpang, Marker Kamera, Ikon Titik Legenda)
+   -------------------------------------------------------------------------- */
+.bjb-marker-junction {
+  border-radius: 999px !important;
+}
+
+.bjb-marker-junction-icon {
+  border-radius: 50% !important;
+}
+
+.bjb-marker-camera {
+  border-radius: 20px !important;
+}
+
+.bjb-cam-icon-wrap {
+  border-radius: 50% !important;
+}
+
+.rounded-circle,
+.cam-marker-circle,
+.stream-pulse-dot {
+  border-radius: 50% !important;
+}

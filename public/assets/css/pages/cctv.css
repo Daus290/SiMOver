@@ -1,0 +1,485 @@
+/* ==========================================================================
+   ATURAN KHUSUS LIVE CCTV, GRID, PLAYER & STATUS (SiMover Banjarbaru)
+   ========================================================================== */
+
+/* ==========================================================================
+   KARTU CCTV
+   ========================================================================== */
+.cctv-card-simple {
+  background-color: var(--dishub-surface);
+  border: 1px solid var(--dishub-border);
+  border-radius: var(--dishub-radius-lg);
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cctv-card-simple:hover {
+  transform: translateY(-2.5px);
+  border-color: #CBD5E1;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+.cctv-thumb-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-color: #1E293B;
+  overflow: hidden;
+}
+
+.cctv-thumb-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cctv-code-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(15, 23, 42, 0.85);
+  color: #FFFFFF;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.cctv-fav-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(15, 23, 42, 0.75);
+  border: none;
+  color: #CBD5E1;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.cctv-fav-toggle:hover,
+.cctv-fav-toggle.is-favorite {
+  color: #FBBF24;
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.cctv-demo-tag {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #E2E8F0;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.cctv-status-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2.5px 9px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.cctv-status-badge.status-online {
+  background-color: #DCFCE7;
+  color: var(--dishub-status-online);
+  border: 1px solid #BBF7D0;
+}
+
+.cctv-status-badge.status-offline {
+  background-color: #FEE2E2;
+  color: var(--dishub-status-offline);
+  border: 1px solid #FECACA;
+}
+
+.cctv-card-info {
+  padding: 1rem 1.05rem;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.cctv-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--dishub-text-main);
+  margin-bottom: 0.25rem;
+}
+
+.cctv-location-text {
+  font-size: 0.8125rem;
+  color: var(--dishub-text-muted);
+  margin-bottom: 0.85rem;
+}
+
+/* Offline Overlay */
+.cctv-offline-box {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.94);
+  color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.cctv-offline-box h5 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 0.25rem;
+}
+
+.cctv-offline-box p {
+  font-size: 0.8125rem;
+  color: #CBD5E1;
+  margin: 0;
+}
+
+/* ==========================================================================
+   SELECTED CCTV PLAYER VIEW (Figma: CCTV Dipilih)
+   ========================================================================== */
+.player-wrap {
+  background-color: var(--dishub-surface);
+  border: 1px solid var(--dishub-border);
+  border-radius: var(--dishub-radius-lg);
+  overflow: hidden;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.player-screen {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-color: #0F172A;
+  overflow: hidden;
+}
+
+.player-screen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cctv-video-player {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background-color: #000000;
+  display: block;
+}
+
+.player-overlay-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(3px);
+  z-index: 10;
+  padding: 1.5rem;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.player-bar-top {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.player-tag {
+  background: rgba(15, 23, 42, 0.85);
+  color: #FFFFFF;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  backdrop-filter: blur(2px);
+}
+
+.cctv-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  background-color: #22C55E;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  animation: liveDotPulse 1.8s infinite;
+  vertical-align: middle;
+}
+
+.cctv-live-dot.dot-connecting {
+  background-color: #F59E0B;
+  box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  animation: liveDotPulse 1.8s infinite;
+}
+
+.cctv-live-dot.dot-error {
+  background-color: #EF4444;
+  box-shadow: none;
+  animation: none;
+}
+
+@keyframes liveDotPulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.player-details {
+  padding: 1.25rem 1.5rem;
+  background-color: var(--dishub-surface);
+}
+
+/* ==========================================================================
+   FILTER & PENCARIAN
+   ========================================================================== */
+.filter-bar {
+  background-color: var(--dishub-surface);
+  border: 1px solid var(--dishub-border);
+  border-radius: var(--dishub-radius-lg);
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.filter-btn {
+  background: transparent;
+  border: 1px solid var(--dishub-border);
+  color: var(--dishub-text-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.38rem 0.75rem;
+  border-radius: var(--dishub-radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.filter-btn:hover {
+  background-color: #F9FAFB;
+  border-color: #CBD5E1;
+}
+
+.filter-btn.active {
+  background-color: var(--dishub-orange);
+  border-color: var(--dishub-orange);
+  color: #FFFFFF;
+}
+
+.search-field-dishub {
+  border: 1px solid var(--dishub-border);
+  border-radius: var(--dishub-radius);
+  padding: 0.45rem 0.85rem 0.45rem 2.25rem;
+  font-size: 0.875rem;
+  width: 100%;
+}
+
+.search-field-dishub:focus {
+  border-color: var(--dishub-orange);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+}
+
+.search-wrapper {
+  position: relative;
+}
+
+.search-wrapper i {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--dishub-text-muted);
+}
+
+
+
+/* ==========================================================================
+   CCTV PLACEHOLDER (BJB DISHUB) & STATUS BADGES
+   ========================================================================== */
+.cctv-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 50% 35%, #1E293B 0%, #0F172A 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  position: relative;
+}
+
+.placeholder-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  color: var(--dishub-orange);
+  margin-bottom: 0.5rem;
+}
+
+.placeholder-cam-title {
+  margin-bottom: 2px;
+}
+
+.placeholder-loc-title {
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cctv-status-badge.status-unavailable {
+  background-color: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #CBD5E1;
+}
+
+.cctv-demo-tag.tag-unconnected {
+  background: rgba(30, 58, 138, 0.88);
+  color: #FFFFFF;
+}
+
+.cctv-demo-tag.tag-unavailable {
+  background: rgba(100, 116, 139, 0.88);
+  color: #FFFFFF;
+}
+
+/* Layar Panel Kamera Banjarbaru Terpilih (Live CCTV) */
+.bjb-placeholder-screen {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: radial-gradient(circle at 50% 40%, #1E293B 0%, #0F172A 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+/* Proporsi Lokasi CCTV 50:50 (Teks 50%, Gambar 50%) */
+@media (min-width: 992px) {
+  .lokasi-cctv-text-col {
+    flex: 0 0 50% !important;
+    max-width: 50% !important;
+    width: 50% !important;
+  }
+
+  .lokasi-cctv-img-col {
+    flex: 0 0 50% !important;
+    max-width: 50% !important;
+    width: 50% !important;
+  }
+}
+
+/* Proporsi Perbandingan Over Dimension & Over Load (Gambar 50%, Teks 50%) */
+.odol-comparison-section {
+  margin-bottom: 4rem;
+}
+
+.odol-comparison-section .odol-row-item {
+  margin-bottom: 4rem;
+}
+
+.odol-comparison-section .odol-row-item:last-child {
+  margin-bottom: 0;
+}
+
+.odol-row-item {
+  margin-bottom: 3.5rem;
+}
+
+.odol-row-item:last-child {
+  margin-bottom: 0;
+}
+
+@media (min-width: 992px) {
+  .odol-comparison-section {
+    margin-bottom: 6rem;
+  }
+
+  .odol-comparison-section .odol-row-item {
+    margin-bottom: 6rem;
+  }
+
+  .odol-col-50 {
+    flex: 0 0 50% !important;
+    max-width: 50% !important;
+    width: 50% !important;
+  }
+}
+
+/* Bingkai Foto Unit (Sudut Sedikit Melengkung Sesuai Kartu Konten) */
+.odol-photo-unit,
+.odol-img-frame {
+  border: 1px solid var(--dishub-border);
+  border-radius: var(--public-card-radius);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  background: #FFFFFF;
+}
+
+.odol-photo-unit img,
+.odol-img-frame img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.odol-photo-caption,
+.odol-img-frame-caption {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.82rem;
+  color: var(--dishub-text-muted);
+  background-color: #FFFFFF;
+  border-top: 1px solid #E2E8F0;
+  line-height: 1.45;
+}
+

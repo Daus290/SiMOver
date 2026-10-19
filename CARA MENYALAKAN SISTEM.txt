@@ -1,0 +1,81 @@
+================================================================================
+          PANDUAN MENYALAKAN SISTEM MONITORING OVER DIMENSION DISHUB
+================================================================================
+
+1. SATU PERINTAH STARTUP CEPAT
+--------------------------------------------------------------------------------
+Buka terminal (PowerShell) di root proyek:
+D:\Project Coding Daus\Web\Sistem Monitoring Over Dimension Dishub
+
+Cukup jalankan satu perintah berikut:
+
+powershell -NoProfile -ExecutionPolicy Bypass -File .\start-system.ps1
+
+Perintah ini akan secara otomatis:
+  a. Memverifikasi seluruh kebutuhan sistem (PHP XAMPP, FFmpeg, berkas konfigurasi).
+  b. Menyalakan database MariaDB/MySQL lokal XAMPP di latar belakang jika belum aktif.
+  c. Menyalakan web server CodeIgniter 4 (port 8080) di latar belakang (tanpa jendela popup).
+  d. Menguji keterjangkauan NVR Vivotek (10.0.1.3:8554).
+  e. Menyalakan seluruh 16 relay CCTV yang tersedia ke segmen HLS lokal.
+  f. Menampilkan ringkasan status kesiapan dan mengembalikan terminal ke pengguna.
+
+
+2. KEBUTUHAN JARINGAN KANTOR UNTUK LIVE CCTV
+--------------------------------------------------------------------------------
+- NVR Vivotek (10.0.1.3) berada di jaringan lokal kantor Dinas Perhubungan.
+- Pastikan laptop Anda terhubung ke jaringan Wi-Fi / LAN kantor saat ingin melihat
+  Live CCTV secara langsung.
+- Jika laptop menggunakan Hotspot HP atau di luar kantor:
+  * Website localhost (http://localhost:8080) dan database TETAP DAPAT BERJALAN normal.
+  * Sistem otomatis mendeteksi NVR tidak dapat dijangkau dan TIDAK AKAN membuat
+    proses gagal yang membebani memori laptop.
+  * Pesan berikut akan ditampilkan:
+    "Website lokal berjalan. CCTV belum dapat diakses. Hubungkan laptop ke jaringan kantor lalu jalankan perintah yang sama."
+
+
+3. ARTI RINGKASAN STATUS
+--------------------------------------------------------------------------------
+Setelah perintah dijalankan, sistem menampilkan ringkasan seperti berikut:
+
+  Website   : SIAP / SUDAH BERJALAN (PID 12345)
+              -> Menandakan CodeIgniter 4 siap diakses di browser.
+  Alamat    : http://localhost:8080/live-cctv
+              -> Buka tautan ini di browser Chrome / Edge.
+  Database  : SIAP / SUDAH BERJALAN (MySQL/MariaDB port 3306)
+              -> Layanan database aktif untuk autentikasi admin.
+  NVR       : DAPAT DIAKSES (10.0.1.3:8554)
+              -> Laptop berhasil terhubung ke perekam CCTV kantor.
+  CCTV      : 16 sumber siap, 0 menunggu media, 2 tidak tersedia
+              * Siap           : Segmen video HLS segar & bergerak di browser.
+              * Menunggu media : Proses FFmpeg hidup, sedang mengunduh frame awal.
+              * Tidak tersedia : Kamera sengaja dilewati sesuai kondisi lapangan
+                                 (RO Ulin Fase 3 belum terpasang, Samsat Fase 1 rusak).
+
+
+4. PERINTAH TAMBAHAN (OPSIONAL)
+--------------------------------------------------------------------------------
+- Mengecek status kapan saja:
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\start-system.ps1 -Action status
+
+- Menghentikan seluruh sistem (Web Server & Relay CCTV):
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\start-system.ps1 -Action stop
+
+- Memulai ulang sistem:
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\start-system.ps1 -Action restart
+
+
+5. TINDAKAN JIKA STARTUP GAGAL / KENDALA
+--------------------------------------------------------------------------------
+a. Konflik Port 8080:
+   - Jika port 8080 dipakai aplikasi lain, startup akan memberi tahu PID proses tsb.
+   - Tutup aplikasi yang menggunakan port 8080, lalu jalankan startup kembali.
+
+b. Database tidak menyala:
+   - Pastikan folder XAMPP di D:\Apps\xampp tersedia.
+   - Anda juga dapat menyalakan MySQL melalui XAMPP Control Panel jika diperlukan.
+
+c. CCTV belum live:
+   - Periksa koneksi Wi-Fi laptop ke jaringan Dishub (IP gateway 10.0.1.x atau 192.168.x).
+   - Log relay tiap kamera tersimpan di:
+     writable\cache\vivotek_stream\<KODE_KAMERA>\ffmpeg.log
+================================================================================

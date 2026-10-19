@@ -1,0 +1,29 @@
+{
+  "archive": {
+    "file_name": "ffmpeg-windows.zip",
+    "size_bytes": 77642594,
+    "size_mib": 74.05,
+    "sha256": "63B7BA976BA00A8C4E0AFDF6E56FBF94CFCF9C55B71310537460301DE4DDBD28",
+    "compression_format": "zip"
+  },
+  "binaries": [
+    {
+      "name": "ffmpeg.exe",
+      "target_relative_path": "writable/bin/ffmpeg.exe",
+      "size_bytes": 105423872,
+      "sha256": "3256173F3F8BFFD7DF12227C68ADF68025EDB1832273A9530688A7BB1ED8EDEC"
+    },
+    {
+      "name": "ffprobe.exe",
+      "target_relative_path": "writable/bin/ffprobe.exe",
+      "size_bytes": 105221120,
+      "sha256": "F0D36ECBBDD3BCFAC3EFA078C96C7271C2E68B3810595552AC3B7F17E9A65C52"
+    }
+  ],
+  "metadata": {
+    "project": "SiMover (Sistem Monitoring Over Dimension) - Dinas Perhubungan Kota Banjarbaru",
+    "purpose": "Distribusi binary FFmpeg/FFprobe Windows 64-bit di bawah batas ukuran file GitHub (100 MiB) tanpa Git LFS",
+    "license": "GNU General Public License (GPL) / LGPL version 2.1 or later",
+    "restoration_tool": "tools/ffmpeg/Restore-FFmpeg.ps1"
+  }
+}

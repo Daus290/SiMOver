@@ -1,0 +1,848 @@
+/* ==========================================================================
+   SISTEM MONITORING OVER DIMENSION - DINAS PERHUBUNGAN KOTA BANJARBARU
+   Stylesheet Khusus Admin Panel (Tahap 5)
+   Terisolasi secara visual tanpa mengganggu antarmuka pengunjung
+   ========================================================================== */
+
+:root {
+  --admin-navy-dark: #0F172A;
+  --admin-navy-sidebar: #0A1E34;
+  /* Biru malam lebih gelap dan pekat namun tetap jelas kebiruannya (#0A1E34) */
+  --admin-navy-card: #14355A;
+  /* Biru malam untuk item aktif & popup (#14355A) */
+  --admin-navy-border: rgba(147, 197, 253, 0.2);
+  --admin-orange: #F97316;
+  --admin-orange-dark: #EA580C;
+  --admin-orange-tint: #FFF7ED;
+  --admin-bg-page: #F8FAFC;
+  --admin-surface: #FFFFFF;
+  --admin-border: #E2E8F0;
+  --admin-text-main: #0F172A;
+  --admin-text-body: #334155;
+  --admin-text-muted: #64748B;
+  --admin-sidebar-width: 250px;
+  --admin-radius: 8px;
+  --admin-radius-lg: 12px;
+  --admin-card-radius: 8px;
+  --admin-btn-radius: 6px;
+  --admin-btn-sm-radius: 4px;
+}
+
+/* ==========================================================================
+   RESET & DASAR ADMIN
+   ========================================================================== */
+body.admin-body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--admin-bg-page);
+  color: var(--admin-text-body);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* ==========================================================================
+   LAYOUT STRUKTUR ADMIN (Sidebar Kiri + Konten Kanan)
+   ========================================================================== */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Sidebar Desktop & Mobile (Biru Malam #123554) */
+.admin-sidebar {
+  width: var(--admin-sidebar-width);
+  background-color: var(--admin-navy-sidebar);
+  color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1030;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease;
+}
+
+/* Brand / Logo di Pucuk Sidebar */
+.admin-sidebar-brand {
+  padding: 1.25rem 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-decoration: none;
+  color: #FFFFFF;
+}
+
+.admin-sidebar-brand:hover {
+  color: #FFFFFF;
+}
+
+.admin-sidebar-logo {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 2px;
+}
+
+.admin-brand-text h1 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+  color: #FFFFFF;
+}
+
+.admin-brand-text p {
+  font-size: 0.7rem;
+  color: #94A3B8;
+  margin: 2px 0 0 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Menu Navigasi Sidebar */
+.admin-sidebar-nav {
+  padding: 1.25rem 0.75rem;
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
+.admin-nav-category {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #64748B;
+  padding: 0 0.65rem 0.65rem 0.65rem;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.75rem 0.9rem;
+  color: #CBD5E1;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  border-radius: var(--admin-radius);
+  margin-bottom: 4px;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.admin-nav-item i {
+  font-size: 1.15rem;
+  color: #94A3B8;
+  transition: color 0.15s ease;
+}
+
+.admin-nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #FFFFFF;
+}
+
+.admin-nav-item:hover i {
+  color: var(--admin-orange);
+}
+
+/* Menu Aktif (Sesuai Figma Admin: bidang navy sedikit lebih terang & garis oranye di kiri) */
+.admin-nav-item.active {
+  background-color: var(--admin-navy-card);
+  color: #FFFFFF;
+  font-weight: 600;
+  border-left: 3.5px solid var(--admin-orange);
+}
+
+.admin-nav-item.active i {
+  color: var(--admin-orange);
+}
+
+/* Area Akun di Bawah Sidebar */
+.admin-sidebar-footer {
+  padding: 1rem 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+}
+
+.admin-user-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--admin-radius);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-user-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.admin-user-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--admin-orange), var(--admin-orange-dark));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  color: #FFFFFF;
+}
+
+.admin-user-info {
+  line-height: 1.2;
+}
+
+.admin-user-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.admin-user-role {
+  font-size: 0.7rem;
+  color: #94A3B8;
+}
+
+/* Popup Menu Akun (Buka ke Atas) */
+.admin-account-dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0.85rem;
+  right: 0.85rem;
+  background-color: var(--admin-navy-card);
+  border: 1px solid var(--admin-navy-border);
+  border-radius: var(--admin-radius-lg);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+  padding: 0.5rem;
+  z-index: 1050;
+  display: none;
+  animation: adminFadeInUp 0.18s ease-out;
+}
+
+.admin-account-dropdown.show {
+  display: block;
+}
+
+@keyframes adminFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-dropdown-header {
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 0.35rem;
+}
+
+.admin-dropdown-user {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.admin-dropdown-sub {
+  font-size: 0.72rem;
+  color: #94A3B8;
+}
+
+.admin-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #E2E8F0;
+  text-decoration: none;
+  border-radius: var(--admin-radius);
+  transition: all 0.15s ease;
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.admin-dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}
+
+.admin-dropdown-item.text-danger:hover {
+  background-color: rgba(220, 38, 38, 0.15);
+  color: #F87171;
+}
+
+/* ==========================================================================
+   KONTEN UTAMA ADMIN
+   ========================================================================== */
+.admin-main-wrap {
+  margin-left: var(--admin-sidebar-width);
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--admin-bg-page);
+  width: calc(100% - var(--admin-sidebar-width));
+}
+
+.admin-header-bar {
+  background-color: var(--admin-surface);
+  border-bottom: 1px solid var(--admin-border);
+  padding: 0.85rem 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-content-area {
+  padding: 1.75rem;
+  flex: 1 0 auto;
+}
+
+.admin-footer-bar {
+  background-color: var(--admin-surface);
+  border-top: 1px solid var(--admin-border);
+  padding: 0.85rem 1.75rem;
+  font-size: 0.75rem;
+  color: var(--admin-text-muted);
+  text-align: center;
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+/* ==========================================================================
+   KOMPONEN KARTU & STATISTIK ADMIN
+   ========================================================================== */
+.admin-card {
+  background-color: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-card-radius);
+  padding: 1.4rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  height: auto;
+}
+
+.admin-card-grid {
+  height: 100%;
+}
+
+/* Kartu Statistik Mingguan */
+.admin-stat-card {
+  background-color: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  padding: 1.25rem 1.4rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 100%;
+}
+
+.admin-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+}
+
+.admin-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3.5px;
+}
+
+.admin-stat-card.accent-total::before {
+  background-color: #0284C7;
+}
+
+.admin-stat-card.accent-overdim::before {
+  background-color: var(--admin-orange);
+}
+
+.admin-stat-card.accent-kontainer::before {
+  background-color: #2563EB;
+}
+
+.admin-stat-card.accent-cctv::before {
+  background-color: #16A34A;
+}
+
+.admin-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-stat-icon.icon-total {
+  background-color: #E0F2FE;
+  color: #0284C7;
+}
+
+.admin-stat-icon.icon-overdim {
+  background-color: #FFF7ED;
+  color: var(--admin-orange-dark);
+}
+
+.admin-stat-icon.icon-kontainer {
+  background-color: #DBEAFE;
+  color: #2563EB;
+}
+
+.admin-stat-icon.icon-cctv {
+  background-color: #DCFCE7;
+  color: #16A34A;
+}
+
+.admin-stat-num {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--admin-navy-dark);
+  line-height: 1.1;
+  margin-bottom: 0.2rem;
+}
+
+.admin-stat-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+}
+
+.admin-stat-sub {
+  font-size: 0.72rem;
+  color: #94A3B8;
+  margin-top: 0.35rem;
+}
+
+/* Kartu 3 Insight Mingguan */
+.admin-insight-card {
+  background-color: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  padding: 1.25rem;
+  height: 100%;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.admin-insight-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background-color: var(--admin-orange-tint);
+  color: var(--admin-orange-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.admin-insight-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--admin-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.admin-insight-val {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--admin-navy-dark);
+  margin-bottom: 0.15rem;
+}
+
+.admin-insight-sub {
+  font-size: 0.75rem;
+  color: var(--admin-orange-dark);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   TABEL & PAGINASI ADMIN
+   ========================================================================== */
+.table-responsive-admin {
+  background-color: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-card-radius);
+  overflow-x: auto;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.table-admin {
+  width: 100%;
+  margin-bottom: 0;
+  border-collapse: collapse;
+}
+
+.table-admin th {
+  background-color: #F8FAFC;
+  color: var(--admin-text-main);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--admin-border);
+  white-space: nowrap;
+}
+
+.table-admin td {
+  padding: 0.85rem 1rem;
+  font-size: 0.85rem;
+  color: var(--admin-text-body);
+  border-bottom: 1px solid #F1F5F9;
+  vertical-align: middle;
+}
+
+.table-admin tbody tr:hover {
+  background-color: #F8FAFC;
+}
+
+.table-admin tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Badge Hasil Deteksi Admin */
+.badge-deteksi {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3.5px 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.badge-deteksi svg {
+  display: inline-block;
+  vertical-align: -1px;
+}
+
+.badge-deteksi.badge-normal {
+  background-color: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
+}
+
+.badge-deteksi.badge-kontainer {
+  background-color: #DBEAFE;
+  color: #2563EB;
+  border: 1px solid #BFDBFE;
+}
+
+.badge-deteksi.badge-overdim {
+  background-color: #FFF7ED;
+  color: #EA580C;
+  border: 1px solid #FED7AA;
+}
+
+/* Badge Indikator Filter Aktif (Kuning Transparan Modern berbentuk Pill) */
+.badge-filter-active {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2.5px 9px;
+  border-radius: 999px;
+  background-color: rgba(234, 179, 8, 0.15);
+  color: #A16207;
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+
+/* Paginasi Admin */
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-page-link {
+  min-width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border-radius: var(--admin-btn-sm-radius);
+  border: 1px solid var(--admin-border);
+  background-color: var(--admin-surface);
+  color: var(--admin-text-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.admin-page-link:hover {
+  background-color: #F1F5F9;
+  border-color: #CBD5E1;
+  color: var(--admin-navy-dark);
+}
+
+.admin-page-link.active {
+  background-color: var(--admin-orange);
+  border-color: var(--admin-orange);
+  color: #FFFFFF;
+}
+
+.admin-page-link.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  background-color: #F8FAFC;
+}
+
+/* Catatan: Aturan visual halaman login admin telah dipisahkan ke public/assets/css/admin/login.css */
+
+
+/* Tombol Oranye Khas Dishub */
+.btn-admin-primary {
+  background-color: var(--admin-orange);
+  border: 1px solid var(--admin-orange);
+  color: #FFFFFF;
+  font-weight: 600;
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--admin-btn-radius);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  text-decoration: none;
+}
+
+.btn-admin-primary.btn-sm {
+  padding: 0.45rem 0.95rem;
+  font-size: 0.85rem;
+  border-radius: var(--admin-btn-sm-radius);
+}
+
+.btn-admin-primary:hover {
+  background-color: var(--admin-orange-dark);
+  border-color: var(--admin-orange-dark);
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+
+.btn-admin-outline {
+  background-color: transparent;
+  border: 1px solid var(--admin-border);
+  color: var(--admin-text-body);
+  font-weight: 600;
+  padding: 0.55rem 1.15rem;
+  border-radius: var(--admin-btn-radius);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.btn-admin-outline.btn-sm {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+  border-radius: var(--admin-btn-sm-radius);
+}
+
+.btn-admin-outline:hover {
+  background-color: #F1F5F9;
+  border-color: #CBD5E1;
+  color: var(--admin-navy-dark);
+}
+
+/* ==========================================================================
+   RESPONSIVITAS (Tablet & Ponsel)
+   ========================================================================== */
+@media (max-width: 991.98px) {
+  .admin-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .admin-sidebar.show {
+    transform: translateX(0);
+  }
+
+  .admin-main-wrap {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .admin-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(15, 23, 42, 0.6);
+    z-index: 1025;
+    display: none;
+  }
+
+  .admin-sidebar-backdrop.show {
+    display: block;
+  }
+
+}
+
+/* ==========================================================================
+   PENYESUAIAN SUDUT ADMIN PANEL (Prompt 45)
+   Kartu & Panel 8px, Tombol Biasa 6px, Tombol Kecil & Paginasi 4px, Stat Card 12px
+   ========================================================================== */
+
+/* Kontrol Form & Alert Admin tetap bersudut siku-siku formal */
+.form-control,
+.form-select,
+.input-group-text,
+.alert,
+.admin-login-box {
+  border-radius: 0 !important;
+}
+
+/* Kartu dan Panel Konten Admin Sedikit Melengkung (8px) */
+body.admin-body .admin-card,
+body.admin-body .card,
+body.admin-body .table-responsive-admin,
+body.admin-body .table-responsive,
+body.admin-body .modal-content {
+  border-radius: var(--admin-card-radius, 8px) !important;
+}
+
+/* Pembungkus tabel admin menjaga sudut melengkung dan mengizinkan horizontal scroll */
+body.admin-body .table-responsive-admin {
+  overflow-x: auto;
+  border-radius: var(--admin-card-radius, 8px) !important;
+}
+
+/* Sudut header dan footer baris tabel selaras dengan pembungkus */
+body.admin-body .table-responsive-admin .table-admin thead tr:first-child th:first-child {
+  border-top-left-radius: calc(var(--admin-card-radius, 8px) - 1px);
+}
+body.admin-body .table-responsive-admin .table-admin thead tr:first-child th:last-child {
+  border-top-right-radius: calc(var(--admin-card-radius, 8px) - 1px);
+}
+body.admin-body .table-responsive-admin .table-admin tbody tr:last-child td:first-child {
+  border-bottom-left-radius: calc(var(--admin-card-radius, 8px) - 1px);
+}
+body.admin-body .table-responsive-admin .table-admin tbody tr:last-child td:last-child {
+  border-bottom-right-radius: calc(var(--admin-card-radius, 8px) - 1px);
+}
+
+/* Kartu Statistik Mingguan Admin TETAP 12px */
+body.admin-body .admin-stat-card {
+  border-radius: 12px !important;
+}
+
+body.admin-body .admin-stat-icon {
+  border-radius: 10px !important;
+}
+
+/* Kartu Insight Mingguan Admin TETAP 12px */
+body.admin-body .admin-insight-card {
+  border-radius: 12px !important;
+}
+
+body.admin-body .admin-insight-icon {
+  border-radius: 10px !important;
+}
+
+/* Tombol Admin Sedikit Melengkung (Prompt 45: 6px untuk biasa, 4px untuk sm & pagination) */
+body.admin-body .btn,
+body.admin-body .btn-admin-primary,
+body.admin-body .btn-admin-outline,
+body.admin-body .btn-primary,
+body.admin-body .btn-secondary,
+body.admin-body .btn-danger,
+body.admin-body .btn-light,
+body.admin-body .btn-admin-square {
+  border-radius: var(--admin-btn-radius, 6px) !important;
+}
+
+body.admin-body .btn:hover,
+body.admin-body .btn:focus,
+body.admin-body .btn:active,
+body.admin-body .btn:disabled,
+body.admin-body .btn.disabled,
+body.admin-body .btn-admin-primary:hover,
+body.admin-body .btn-admin-primary:focus,
+body.admin-body .btn-admin-primary:active,
+body.admin-body .btn-admin-outline:hover,
+body.admin-body .btn-admin-outline:focus,
+body.admin-body .btn-admin-outline:active {
+  border-radius: var(--admin-btn-radius, 6px) !important;
+}
+
+body.admin-body .btn-sm,
+body.admin-body .btn-group-sm > .btn,
+body.admin-body .btn-admin-primary.btn-sm,
+body.admin-body .btn-admin-outline.btn-sm,
+body.admin-body .btn-admin-square.btn-sm,
+body.admin-body .admin-page-link,
+body.admin-body .pagination .page-link,
+body.admin-body .page-link {
+  border-radius: var(--admin-btn-sm-radius, 4px) !important;
+}
+
+body.admin-body .btn-sm:hover,
+body.admin-body .btn-sm:focus,
+body.admin-body .btn-sm:active,
+body.admin-body .btn-sm:disabled,
+body.admin-body .btn-sm.disabled,
+body.admin-body .btn-admin-primary.btn-sm:hover,
+body.admin-body .btn-admin-primary.btn-sm:focus,
+body.admin-body .btn-admin-primary.btn-sm:active,
+body.admin-body .btn-admin-outline.btn-sm:hover,
+body.admin-body .btn-admin-outline.btn-sm:focus,
+body.admin-body .btn-admin-outline.btn-sm:active,
+body.admin-body .admin-page-link:hover,
+body.admin-body .admin-page-link:focus,
+body.admin-body .admin-page-link:active,
+body.admin-body .admin-page-link.active,
+body.admin-body .admin-page-link.disabled,
+body.admin-body .pagination .page-link:hover,
+body.admin-body .pagination .page-link:focus,
+body.admin-body .pagination .page-link:active {
+  border-radius: var(--admin-btn-sm-radius, 4px) !important;
+}
+

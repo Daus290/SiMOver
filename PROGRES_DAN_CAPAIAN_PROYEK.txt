@@ -1,0 +1,207 @@
+================================================================================
+          LAPORAN CAPAIAN & PROGRES SISTEM MONITORING OVER DIMENSION
+                         DINAS PERHUBUNGAN KOTA BANJARBARU
+================================================================================
+Tanggal Pembaruan : 11 Oktober 2026
+Status Sistem     : STABIL, LENGKAP, DAN TERINTEGRASI PENUH
+Lokasi Proyek     : d:\Project Coding Daus\Web\Sistem Monitoring Over Dimension Dishub
+Framework         : CodeIgniter 4 (PHP 8.2) + Bootstrap 5.3 + Vanilla CSS
+Database          : MySQL / MariaDB (XAMPP) - Database: `monitoring_dishub`
+Streaming Engine  : FFmpeg Portabel (writable\bin\ffmpeg.exe) + WMI Win32_Process
+Hardware NVR      : Vivotek NVR ND9541 (IP: 10.0.1.3, RTSP Port: 8554)
+Alamat Akses      : http://localhost:8080/
+================================================================================
+
+--------------------------------------------------------------------------------
+1. RINGKASAN EKSEKUTIF: SEJAUH MANA PROGRES KITA?
+--------------------------------------------------------------------------------
+Secara keseluruhan, proyek Sistem Monitoring Over Dimension telah menyelesaikan
+seluruh target utama (Tahap 1 s/d Tahap 5) serta rangkaian perapihan dan integrasi
+CCTV lanjutan (Prompt 20 s/d Prompt 27). 
+
+Seluruh fitur portal publik, portal administrator, edukasi regulasi, peta interaktif,
+analitik deteksi AI, hingga streaming video CCTV langsung dari NVR Vivotek kantor
+sudah berfungsi dan teruji dengan sangat baik.
+
+Rekapitulasi Persentase Capaian per Modul:
+1. [100%] FONDASI & LAYOUT UTAMA (Master Layout, Navbar, Footer, Tipografi Source Sans 3)
+2. [100%] HALAMAN EDUKASI & PROFIL (Tentang Over Dimension & Profil Dishub)
+3. [100%] PETA INTERAKTIF CCTV (Leaflet.js, 4 Simpang Protokol, Deep-link Fokus Kamera)
+4. [100%] DASHBOARD ANALITIK PUBLIK (Chart.js Tren 7 Hari, Komposisi Pelanggaran)
+5. [100%] LIVE CCTV STREAMING VIVOTEK (18 Titik Banjarbaru, Player HLS, Snapshot)
+6. [100%] PORTAL ADMINISTRATOR TERPROTEKSI (Login, CSRF, Tabel Deteksi AI, Ubah Sandi)
+7. [100%] INTEGRASI KARTU CCTV DI BERANDA (6 Kamera Banjarbaru Aktif, Sumber Dinamis)
+8. [100%] STARTUP OTOMATIS SATU PERINTAH (`start-system.ps1` Bebas Blokir Terminal)
+9. [100%] PEMULIHAN STABILITAS & PEMBERSIHAN KETERANGAN BERULANG (Prompt 25 & 26)
+
+
+--------------------------------------------------------------------------------
+2. RINCIAN FITUR PER HALAMAN YANG SUDAH SELESAI
+--------------------------------------------------------------------------------
+
+A. HALAMAN BERANDA (http://localhost:8080/)
+   - Hero Section modern dengan banner pengawasan lalu lintas dan tombol aksi cepat.
+   - 4 Kartu Statistik Ringkasan:
+     * CCTV Terpantau (16 Titik Aktif dari 17 Terpasang)
+     * Total Deteksi Hari Ini (128 Kendaraan)
+     * Terindikasi Over Dimension (34 Pelanggaran)
+     * Kendaraan Normal (94 Kendaraan)
+   - Bagian "Pantauan CCTV Terkini":
+     * Menampilkan tepat 6 kartu CCTV Kota Banjarbaru aktif secara dinamis:
+       1. BJB-BRIMOB-F1 (Brimob Fase 1)
+       2. BJB-BRIMOB-F2 (Brimob Fase 2)
+       3. BJB-BRIMOB-F3 (Brimob Fase 3)
+       4. BJB-BRIMOB-PTZ (Brimob PTZ)
+       5. BJB-ROULIN-F1 (RO Ulin Fase 1)
+       6. BJB-ROULIN-F2 (RO Ulin Fase 2)
+     * Menggunakan snapshot aktual kamera Banjarbaru.
+     * Paragraf lama sumber ATCS Banjarmasin sudah dibersihkan total.
+     * Tampilan bersih tanpa badge status ganda di samping judul (Prompt 26 & 27).
+     * Tombol aksi kartu langsung menautkan ke `/live-cctv?cctv=KODE_KAMERA`.
+     * Tombol "Lihat Semua CCTV" mengarah ke `/live-cctv`.
+   - Bagian "Lokasi CCTV":
+     * Layout presisi 50:50 pada desktop (teks kiri, pratinjau peta kanan).
+     * Tombol "Buka Peta Interaktif" langsung menuju `/peta-cctv`.
+   - Informasi Pemantauan dan Footer Dark Navy instansi resmi.
+
+B. HALAMAN LIVE CCTV (http://localhost:8080/live-cctv)
+   - Pemutar Video HLS Utama:
+     * Menampilkan tayangan langsung saat kamera dipilih (contoh: `?cctv=BJB-BRIMOB-F1`).
+     * Indikator status pada overlay video dinamis (`LIVE`, `MEMUAT`, `BUFFERING`, `TERPUTUS`).
+     * Label sumber di pojok video rapi bertuliskan `Vivotek`.
+     * Header player menampilkan badge `Jaringan Kantor`, `Vivotek Banjarbaru`, dan tipe kamera.
+     * Badge status duplikat di bawah video telah dibersihkan tanpa mengganggu JavaScript player.
+     * Footer player menampilkan info hardware `Vivotek ND9541 (10.0.1.3:8554)` tanpa karakter menggantung.
+     * Tombol "Tutup Tayangan" dan fallback error / instruksi jaringan kantor yang informatif.
+   - Layar Khusus Kamera Belum Tersedia / Tidak Aktif:
+     * Kamera belum terpasang (`BJB-ROULIN-F3`) dan kamera rusak (`BJB-SAMSAT-F1`) memiliki kartu placeholder khusus yang elegan disertai koordinat dan tombol "Lihat Posisi pada Peta Interaktif".
+   - Subjudul Heading:
+     * Keterangan merah "Status Online/Offline sementara" beserta bullet pemisah sudah dihapus bersih.
+   - Filter & Pencarian:
+     * Filter persimpangan sejajar satu baris: Semua Simpang (18), Brimob (4), RO Ulin (4), Samsat (5), Adipura (5).
+     * Input pencarian responsif real-time berdasarkan nama, kode, lokasi, dan arah.
+   - Grid 18 Kartu CCTV Banjarbaru:
+     * Bersih dari badge status berulang di bagian putih kartu.
+     * Keterangan visual pada gambar tetap dipertahankan (`LIVE`, `Tidak Aktif`, `Belum Tersedia`, `Gambar Tersimpan`).
+     * Fitur tombol bintang favorit berbasis localStorage.
+
+C. HALAMAN PETA INTERAKTIF (http://localhost:8080/peta-cctv)
+   - Peta Leaflet.js dengan basemap OpenStreetMap berpusat di Kota Banjarbaru.
+   - 4 Marker Persimpangan Protokol Utama (Brimob, RO Ulin, Samsat, Adipura).
+   - Deep-link query string (contoh: `/peta-cctv?cctv=BJB-SAMSAT-F2` otomatis fokus dan membuka popup persimpangan terkait).
+   - 4 Kartu Persimpangan dengan tombol aksi sejajar:
+     * "Detail Simpang" (modal pop-up daftar kamera di persimpangan tersebut).
+     * "Lihat di Peta" (pan/zoom smooth ke titik koordinat).
+     * "Lihat CCTV" (navigasi langsung ke `/live-cctv`).
+   - Kotak legenda jenis persimpangan dan titik pemantauan.
+
+D. HALAMAN DASHBOARD ANALITIK PUBLIK (http://localhost:8080/dashboard)
+   - Kartu metrik utama dengan kartu "CCTV Terpantau" (16/17 Aktif) pada urutan pertama.
+   - Grafik interaktif Chart.js:
+     * Tren Deteksi Kendaraan 7 Hari Terakhir.
+     * Proporsi Jenis Pelanggaran Dimensi (Panjang, Lebar, Tinggi, Kombinasi).
+   - Tabel ringkasan kendaraan terdeteksi hari ini bersumber dari DummyDataService.
+
+E. HALAMAN EDUKASI OVER DIMENSION (http://localhost:8080/tentang-over-dimension)
+   - Ilustrasi vektor transparan truk 3 sumbu presisi pada bagian hero.
+   - Penjelasan komprehensif perbedaan Over Dimension vs Over Load (ODOL):
+     * Layout zigzag 50:50 bersih tanpa card-plain (Foto Kiri vs Teks Kanan, dan sebaliknya).
+     * Foto asli utuh tanpa terpotong (pickup karung vs truk roda terangkat).
+     * Perbandingan teknis: pengawasan AI dimensi jalan vs timbangan tonase UPPKB.
+   - Dampak pelanggaran Over Dimension: kerusakan infrastruktur jalan, fatalitas kecelakaan, dan kemacetan.
+   - Alur kerja sistem 6 langkah berurutan berlabel "Rencana Integrasi".
+   - Kategori kendaraan dalam pemantauan (Truk Tronton, Dumptruck, Kontainer, Pickup).
+
+F. HALAMAN PROFIL DISHUB (http://localhost:8080/tentang-dishub)
+   - Visi, misi, struktur organisasi, dan peran strategis Dishub Banjarbaru dalam mewujudkan transportasi cerdas dan tertib dimensi.
+
+G. PORTAL ADMINISTRATOR TERPROTEKSI (http://localhost:8080/admin)
+   - Autentikasi Login Aman (`/admin/login`):
+     * Proteksi rate-limiting percobaan login.
+     * Proteksi token CSRF otomatis.
+     * Hash kata sandi menggunakan standard industri bcrypt.
+     * Proteksi Session Fixation dan pencegahan akses back-button via header `Cache-Control: no-store`.
+   - Dashboard Administrator (`/admin/dashboard`):
+     * Statistik operasional internal, ringkasan keparahan pelanggaran, grafik analitik.
+   - Rekapitulasi Hasil Deteksi AI (`/admin/hasil-deteksi`):
+     * Tabel 128 data deteksi kendaraan lengkap dengan filter tanggal, jenis pelanggaran, status, dan persimpangan.
+     * Modal detail kendaraan interaktif: menampilkan foto cuplikan, visualisasi bounding box, dimensi terukur vs batas maksimal legal, serta persentase kelebihan dimensi.
+     * Ekspor data deteksi.
+   - Manajemen Akun Admin:
+     * Fitur Ubah Kata Sandi via AJAX modal dengan pembaruan `auth_version` instan.
+
+
+--------------------------------------------------------------------------------
+3. STATUS INTEGRASI PERANGKAT KERAS NVR VIVOTEK (18 TITIK)
+--------------------------------------------------------------------------------
+Integrasi perangkat keras Vivotek ND9541 kantor Dishub Banjarbaru (10.0.1.3:8554)
+telah terpetakan 100% berdasarkan audit RTSP langsung di lapangan (Prompt 20):
+
+Total: 18 Titik (17 Terpasang Fisik, 1 Belum Tersedia di Lapangan)
+Status: 16 Kamera Aktif Siap Streaming, 1 Belum Tersedia, 1 Rusak di Lapangan.
+
+1. Simpang Tiga RO Ulin (4 Titik: 3 Aktif, 1 Belum Tersedia):
+   - BJB-ROULIN-F1  | Kanal C_1 | Stream 1 | H.265 | STATUS: AKTIF LIVE (Gadget Mart)
+   - BJB-ROULIN-F2  | Kanal C_2 | Stream 1 | H.265 | STATUS: AKTIF LIVE (Median Jalan & Parkir Motor)
+   - BJB-ROULIN-F3  | Kanal C_3 | Stream 1 | H.265 | STATUS: Belum Tersedia di Lapangan
+   - BJB-ROULIN-PTZ | Kanal C_4 | Stream 1 | H.264 | STATUS: AKTIF LIVE (Persimpangan Marka X)
+
+2. Simpang Tiga Brimob (4 Titik: 4 Aktif 100%):
+   - BJB-BRIMOB-F1  | Kanal C_5 | Stream 1 | H.264 | STATUS: AKTIF LIVE (Optik Billy Jaya)
+   - BJB-BRIMOB-F2  | Kanal C_6 | Stream 1 | H.265 | STATUS: AKTIF LIVE (Pagar Biru & Rumah Seng)
+   - BJB-BRIMOB-F3  | Kanal C_7 | Stream 1 | H.264 | STATUS: AKTIF LIVE (Tembok Tinggi & Overlay 1970)
+   - BJB-BRIMOB-PTZ | Kanal C_8 | Stream 1 | H.264 | STATUS: AKTIF LIVE (Tiang Listrik & Marka X)
+
+3. Simpang Empat Samsat (5 Titik: 4 Aktif, 1 Rusak di Lapangan):
+   - BJB-SAMSAT-F1  | Kanal C_9  | Stream 1 | H.264 | STATUS: Tidak Aktif (Kerusakan Perangkat Lapangan)
+   - BJB-SAMSAT-F2  | Kanal C_10 | Stream 1 | H.265 | STATUS: AKTIF LIVE (Pos Lantas & Arah Ratu Zalecha)
+   - BJB-SAMSAT-F3  | Kanal C_11 | Stream 1 | H.265 | STATUS: AKTIF LIVE (Arah Martapura)
+   - BJB-SAMSAT-F4  | Kanal C_12 | Stream 1 | H.265 | STATUS: AKTIF LIVE (Arah Pusat Kota Banjarbaru)
+   - BJB-SAMSAT-PTZ | Kanal C_13 | Stream 1 | H.264 | STATUS: AKTIF LIVE (Panorama Simpang Empat Samsat)
+
+4. Simpang Empat Adipura (5 Titik: 5 Aktif 100%):
+   - BJB-ADIPURA-F1  | Kanal C_15 | Stream 1 | H.265 | STATUS: AKTIF LIVE (Fase 1 Tugu Adipura)
+   - BJB-ADIPURA-F2  | Kanal C_16 | Stream 1 | H.265 | STATUS: AKTIF LIVE (Fase 2 Jalur Masuk)
+   - BJB-ADIPURA-F3  | Kanal C_17 | Stream 1 | H.265 | STATUS: AKTIF LIVE (Fase 3 Jalur Keluar)
+   - BJB-ADIPURA-F4  | Kanal C_18 | Stream 1 | H.265 | STATUS: AKTIF LIVE (Fase 4 Jalur Protokol)
+   - BJB-ADIPURA-PTZ | Kanal C_19 | Stream 1 | H.264 | STATUS: AKTIF LIVE (Panorama 360° Bundaran Adipura)
+
+
+--------------------------------------------------------------------------------
+4. PANDUAN PENGOPERASIAN SISTEM (SATU PERINTAH)
+--------------------------------------------------------------------------------
+Sistem telah dilengkapi dengan automasi startup cerdas. Pengguna tidak perlu lagi
+membuka banyak terminal manual:
+
+1. MENYALAKAN SISTEM:
+   Buka terminal PowerShell di folder proyek dan jalankan:
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\start-system.ps1
+
+   Perintah ini otomatis:
+   a. Memeriksa ketersediaan PHP dan FFmpeg portabel.
+   b. Menyalakan database MySQL/MariaDB XAMPP port 3306 di latar belakang jika belum jalan.
+   c. Menyalakan web server CodeIgniter 4 (port 8080) di latar belakang (tanpa popup jendela).
+   d. Menguji koneksi ke NVR kantor (10.0.1.3:8554).
+      - Jika di jaringan kantor: otomatis menyalakan seluruh 16 background relay CCTV.
+      - Jika di luar kantor / hotspot HP: web lokal tetap menyala normal dan relay dilewati agar tidak membebani memori.
+   e. Mengembalikan kontrol terminal ke pengguna secara instan.
+
+2. MEMERIKSA STATUS KAPAN SAJA:
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\start-system.ps1 -Action status
+
+3. MENGHENTIKAN SELURUH SISTEM:
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\start-system.ps1 -Action stop
+
+4. MEMULAI ULANG SISTEM:
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\start-system.ps1 -Action restart
+
+
+--------------------------------------------------------------------------------
+5. KESIMPULAN & LANGKAH SELANJUTNYA
+--------------------------------------------------------------------------------
+Kondisi saat ini:
+- Seluruh kode sumber berada dalam kondisi prima, bersih dari eksperimen yang tidak stabil, dan bebas dari error/warning race condition.
+- Tampilan web rapi, modern, boxy, dan konsisten di seluruh halaman publik maupun admin.
+- Beranda kini sepenuhnya menampilkan kamera Banjarbaru lokal.
+- Sistem siap digunakan untuk demonstrasi, pengujian internal, maupun presentasi instansi Dinas Perhubungan Kota Banjarbaru.
+================================================================================

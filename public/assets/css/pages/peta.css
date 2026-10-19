@@ -1,0 +1,358 @@
+/* ==========================================================================
+   ATURAN KHUSUS PETA INTERAKTIF LEAFLET (SiMover Banjarbaru)
+   ========================================================================== */
+
+/* ==========================================================================
+   PETA INTERAKTIF: Penanda Ikon Kamera (#8)
+   ========================================================================== */
+.map-canvas-box {
+  position: relative;
+  width: 100%;
+  background-color: #EEF2F6;
+  border-radius: var(--dishub-radius-lg);
+  border: 1px solid var(--dishub-border);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.map-pin-camera {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  z-index: 5;
+  text-decoration: none;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-pin-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  border: 2px solid var(--dishub-orange);
+  color: var(--dishub-orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.map-pin-camera.is-offline .map-pin-icon-wrap {
+  border-color: var(--dishub-status-offline);
+  color: var(--dishub-status-offline);
+}
+
+.map-pin-camera:hover .map-pin-icon-wrap,
+.map-pin-camera:focus-visible .map-pin-icon-wrap {
+  transform: scale(1.15);
+  background-color: var(--dishub-orange);
+  color: #FFFFFF;
+}
+
+.map-pin-camera.is-offline:hover .map-pin-icon-wrap,
+.map-pin-camera.is-offline:focus-visible .map-pin-icon-wrap {
+  background-color: var(--dishub-status-offline);
+  color: #FFFFFF;
+}
+
+.map-pin-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--dishub-blue-dark);
+  color: #FFFFFF;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.map-pin-camera:hover .map-pin-tooltip,
+.map-pin-camera:focus-visible .map-pin-tooltip {
+  opacity: 1;
+}
+
+
+
+/* ==========================================================================
+   PETA LEAFLET GEOGRAFIS (BJB DISHUB) & MARKER KUSTOM
+   ========================================================================== */
+.leaflet-map-wrapper {
+  position: relative;
+  width: 100%;
+  border-radius: var(--dishub-radius-lg);
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--dishub-border);
+}
+
+/* Standar Layar Penuh */
+.leaflet-map-wrapper:fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  background-color: #0F172A;
+}
+
+.leaflet-map-wrapper:fullscreen .leaflet-map-container {
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  border-radius: 0 !important;
+}
+
+/* WebKit (Chrome, Safari, Edge lama) */
+.leaflet-map-wrapper:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  background-color: #0F172A;
+}
+
+.leaflet-map-wrapper:-webkit-full-screen .leaflet-map-container {
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  border-radius: 0 !important;
+}
+
+/* Fallback Class Toggled via JS */
+.leaflet-map-wrapper.is-fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  background-color: #0F172A;
+}
+
+.leaflet-map-wrapper.is-fullscreen .leaflet-map-container {
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  border-radius: 0 !important;
+}
+
+.leaflet-map-container {
+  width: 100%;
+  height: 600px;
+  background-color: #E2E8F0;
+  z-index: 1;
+}
+
+@media (max-width: 767.98px) {
+  .leaflet-map-container {
+    height: 440px;
+  }
+}
+
+/* Tombol Kontrol Peta Kustom */
+.leaflet-map-controls-bar {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+}
+
+.btn-map-control {
+  background: #FFFFFF;
+  color: var(--dishub-blue-dark);
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.btn-map-control:hover {
+  background: var(--dishub-orange);
+  color: #FFFFFF;
+  border-color: var(--dishub-orange);
+}
+
+/* Legenda Ringkas Peta */
+.leaflet-map-legend-box {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--dishub-border);
+  border-radius: var(--dishub-radius);
+  padding: 10px 14px;
+  font-size: 0.75rem;
+  color: var(--dishub-text-main);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Marker Persimpangan (Zoom Jauh < 18) */
+.bjb-marker-junction {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #FFFFFF;
+  padding: 5px 12px 5px 6px;
+  border-radius: 999px;
+  border: 2px solid var(--dishub-orange);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  pointer-events: auto;
+}
+
+.bjb-marker-junction:hover,
+.bjb-marker-junction:focus-visible {
+  transform: scale(1.08);
+  border-color: #FFA500;
+  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.5);
+  outline: none;
+}
+
+.bjb-marker-junction-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--dishub-orange);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.bjb-marker-junction-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.bjb-marker-junction-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.bjb-marker-junction-count {
+  font-size: 0.68rem;
+  color: #CBD5E1;
+}
+
+/* Marker Kamera Individual (Zoom Dekat >= 18) */
+.bjb-marker-camera {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #FFFFFF;
+  border: 2px solid #0F172A;
+  border-radius: 20px;
+  padding: 3px 8px 3px 4px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  pointer-events: auto;
+}
+
+.bjb-marker-camera:hover,
+.bjb-marker-camera:focus-visible {
+  transform: scale(1.12);
+  z-index: 1000 !important;
+  outline: none;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.35);
+}
+
+.bjb-marker-camera.status-online {
+  border-color: var(--dishub-status-online);
+}
+
+.bjb-marker-camera.status-offline {
+  border-color: var(--dishub-status-offline);
+}
+
+.bjb-marker-camera.status-unavailable {
+  border: 2px dashed #94A3B8;
+  background: #F8FAFC;
+}
+
+.bjb-cam-icon-wrap {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  background: #0F172A;
+  flex-shrink: 0;
+}
+
+.bjb-marker-camera.status-online .bjb-cam-icon-wrap {
+  background: var(--dishub-status-online);
+}
+
+.bjb-marker-camera.status-offline .bjb-cam-icon-wrap {
+  background: var(--dishub-status-offline);
+}
+
+.bjb-marker-camera.status-unavailable .bjb-cam-icon-wrap {
+  background: #94A3B8;
+}
+
+.bjb-marker-camera.type-ptz .bjb-cam-icon-wrap {
+  background: #2563EB;
+  /* Biru cerah untuk PTZ */
+}
+
+.bjb-cam-label {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  text-align: left;
+}
+
+.bjb-cam-code {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.bjb-cam-dir {
+  font-size: 0.65rem;
+  color: #64748B;
+}
+

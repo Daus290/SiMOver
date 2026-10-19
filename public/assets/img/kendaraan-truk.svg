@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="100%" height="100%">
+  <!-- Truk Kuning Bak Terbuka (Khas Canter) -->
+  <rect width="320" height="200" rx="12" fill="#f8fafc"/>
+  <g transform="translate(20, 20)">
+    <!-- Cabin (Kuning Khas Canter) -->
+    <path d="M 20,70 L 60,70 L 60,120 L 20,120 Z" fill="#eab308"/>
+    <path d="M 20,70 L 35,35 L 60,35 L 60,70 Z" fill="#facc15"/>
+    <path d="M 24,65 L 37,40 L 55,40 L 55,65 Z" fill="#dbeafe"/>
+
+    <!-- Pelindung Kabin / Tiang Pengaman Belakang (Headboard) -->
+    <rect x="65" y="48" width="4" height="24" fill="#ca8a04"/>
+    <line x1="65" y1="48" x2="72" y2="48" stroke="#ca8a04" stroke-width="2.5"/>
+
+    <!-- Bak Terbuka Dinding Samping Rendah (Open Cargo Bed) -->
+    <rect x="65" y="72" width="195" height="46" rx="2" fill="#eab308"/>
+    <!-- Bibir Atas Bak (Top Rail) -->
+    <rect x="65" y="70" width="195" height="4" rx="1" fill="#ca8a04"/>
+
+    <!-- Garis Pembagi Panel & Penguat Bak Terbuka -->
+    <line x1="65" y1="94" x2="260" y2="94" stroke="#ca8a04" stroke-width="2"/>
+    <line x1="114" y1="72" x2="114" y2="118" stroke="#ca8a04" stroke-width="2.5"/>
+    <line x1="163" y1="72" x2="163" y2="118" stroke="#ca8a04" stroke-width="2.5"/>
+    <line x1="212" y1="72" x2="212" y2="118" stroke="#ca8a04" stroke-width="2.5"/>
+    <line x1="65" y1="116" x2="260" y2="116" stroke="#ca8a04" stroke-width="2"/>
+
+    <!-- Chassis -->
+    <rect x="25" y="115" width="235" height="10" fill="#334155"/>
+
+    <!-- Wheels -->
+    <circle cx="45" cy="125" r="16" fill="#0f172a"/>
+    <circle cx="45" cy="125" r="7" fill="#94a3b8"/>
+    <circle cx="195" cy="125" r="16" fill="#0f172a"/>
+    <circle cx="195" cy="125" r="7" fill="#94a3b8"/>
+    <circle cx="235" cy="125" r="16" fill="#0f172a"/>
+    <circle cx="235" cy="125" r="7" fill="#94a3b8"/>
+  </g>
+</svg>

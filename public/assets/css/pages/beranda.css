@@ -1,0 +1,59 @@
+/* ==========================================================================
+   ATURAN KHUSUS HALAMAN BERANDA (SiMover Banjarbaru)
+   ========================================================================== */
+
+/* ==========================================================================
+   KHUSUS HERO BERANDA: Ilustrasi CCTV Jalan Raya Truk Bak & Arah Benar (Prompt 37 & 38)
+   ========================================================================== */
+.hero-dishub.hero-beranda {
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  min-height: 520px;
+}
+
+.hero-dishub.hero-beranda .hero-overlay-depth {
+  background: linear-gradient(135deg,
+      rgba(15, 23, 42, 0.94) 0%,
+      rgba(15, 23, 42, 0.84) 45%,
+      rgba(30, 58, 138, 0.65) 75%,
+      rgba(249, 115, 22, 0.28) 100%);
+}
+
+.hero-dishub.hero-beranda .hero-title {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+.hero-dishub.hero-beranda .hero-desc {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+@media (max-width: 991.98px) {
+  .hero-dishub.hero-beranda {
+    background-position: center center;
+    min-height: 480px;
+    padding: 5rem 0 4.5rem;
+  }
+
+  .hero-dishub.hero-beranda .hero-overlay-depth {
+    background: linear-gradient(180deg,
+        rgba(15, 23, 42, 0.92) 0%,
+        rgba(15, 23, 42, 0.82) 55%,
+        rgba(30, 58, 138, 0.65) 100%);
+  }
+}
+
+@media (max-width: 576px) {
+  .hero-dishub.hero-beranda {
+    background-position: 65% center;
+    padding: 4rem 0 3.5rem;
+  }
+
+  .hero-dishub.hero-beranda .hero-overlay-depth {
+    background: linear-gradient(180deg,
+        rgba(15, 23, 42, 0.92) 0%,
+        rgba(15, 23, 42, 0.85) 60%,
+        rgba(30, 58, 138, 0.70) 100%);
+  }
+}
+

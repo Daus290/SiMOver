@@ -1,0 +1,183 @@
+/* ==========================================================================
+   ATURAN KHUSUS HALAMAN TENTANG DISHUB & OVER DIMENSION (SiMover Banjarbaru)
+   ========================================================================== */
+
+/* ==========================================================================
+   HALAMAN TENTANG DISHUB (PROMPT 42 & 43)
+   Layout Profil Kantor & Pemantauan Visual CCTV Sederhana
+   ========================================================================== */
+.tentang-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.tentang-heading {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--dishub-text-main);
+  line-height: 1.3;
+}
+
+.tentang-desc {
+  color: var(--dishub-text-body);
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.tentang-peran-card {
+  background-color: var(--dishub-surface);
+  border: 1px solid var(--dishub-border);
+  padding: 1.5rem;
+  border-radius: var(--public-card-radius) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.tentang-peran-card:hover {
+  transform: translateY(-2.5px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  border-color: #CBD5E1;
+}
+
+
+
+/* ==========================================================================
+   KARTU DAMPAK PELANGGARAN OVER DIMENSION (3 KARTU BERGAMBAR RATA TENGAH)
+   ========================================================================== */
+.dampak-card {
+  border: 1px solid var(--dishub-border);
+  border-radius: var(--public-card-radius);
+  background-color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dampak-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+.dampak-img-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background-color: #F8FAFC;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--dishub-border);
+  border-top-left-radius: calc(var(--public-card-radius) - 1px);
+  border-top-right-radius: calc(var(--public-card-radius) - 1px);
+}
+
+.dampak-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-top-left-radius: calc(var(--public-card-radius) - 1px);
+  border-top-right-radius: calc(var(--public-card-radius) - 1px);
+}
+
+/* ==========================================================================
+   ALUR KERJA SISTEM (6 TAHAP DENGAN PANAH PENGHUBUNG)
+   ========================================================================== */
+.odol-workflow-track {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.odol-workflow-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.odol-workflow-card {
+  width: 100%;
+  background-color: #FFFFFF;
+  border: 1px solid var(--dishub-border);
+  border-radius: var(--public-card-radius);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  padding: 1.15rem 0.85rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.odol-workflow-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--dishub-orange);
+}
+
+.odol-workflow-num {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--dishub-orange);
+  background-color: #FFF7ED;
+  border: 1px solid #FFEDD5;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.5px;
+}
+
+.odol-workflow-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--dishub-text-main);
+  line-height: 1.35;
+  display: block;
+}
+
+.odol-workflow-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dishub-orange);
+  font-size: 1.25rem;
+  padding: 0.25rem 0;
+}
+
+@media (min-width: 992px) {
+  .odol-workflow-track {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .odol-workflow-item {
+    flex-direction: row;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .odol-workflow-item-last {
+    flex: 1;
+  }
+
+  .odol-workflow-card {
+    height: 100%;
+    min-height: 125px;
+  }
+
+  .odol-workflow-arrow {
+    flex: 0 0 24px;
+    padding: 0;
+    margin: 0 4px;
+  }
+}
+

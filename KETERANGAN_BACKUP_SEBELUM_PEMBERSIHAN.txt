@@ -1,0 +1,48 @@
+================================================================================
+KETERANGAN FILE BACKUP (SEBELUM PEMBERSIHAN - PROMPT 46)
+Sistem Monitoring Over Dimension (SiMover) - Dishub Kota Banjarbaru
+================================================================================
+
+Nama Folder Backup : backup_prompt46_sebelum_pembersihan_20261016-100927
+Keterangan Backup  : Backup Awal Sebelum Pembersihan dan Refaktor Proyek (Prompt 46)
+Waktu Pembuatan    : 16 Oktober 2026, 10:09:38 WITA
+Total File         : 1.366 file
+Total Ukuran       : 107.800.637 bytes (102,81 MB)
+Status Integritas  : 100% Terverifikasi (0 Mismatch, Seluruh SHA-256 Cocok Sempurna)
+Lokasi Manifest    : backup_prompt46_sebelum_pembersihan_20261016-100927/manifest.json
+
+--------------------------------------------------------------------------------
+1. TUJUAN BACKUP
+--------------------------------------------------------------------------------
+Backup ini dibuat SATU KALI sebagai acuan baseline pemulihan (rollback) sebelum
+dilakukan pembersihan scratch (~84 MB), penataan file sisa, pemisahan CSS modular,
+ekstraksi inline JavaScript, dan konsolidasi aset pada pengerjaan Prompt 46.
+
+--------------------------------------------------------------------------------
+2. CAKUPAN PENCADANGAN (1.366 FILE)
+--------------------------------------------------------------------------------
+- app/       : Seluruh source code aplikasi (Controller, Views, Models, Services, Config)
+- public/    : Seluruh aset web (CSS, JS, Gambar, Vendor leaflet/hls/chartjs)
+- scripts/   : Seluruh skrip runner dan relay (vivotek_relay.ps1, setup_ffmpeg.ps1)
+- tests/     : Seluruh file pengujian unit & browser
+- scratch/   : Seluruh file pengujian, screenshot historis, frame, dan skrip sebelum dibersihkan
+- Root files : README.md, .gitignore, composer.json, composer.lock, phpunit.dist.xml,
+               preload.php, spark, builds, env, LICENSE, Live, dan dokumen panduan proyek.
+
+--------------------------------------------------------------------------------
+3. DAFTAR PENGECUALIAN (TIDAK DICADANGKAN)
+--------------------------------------------------------------------------------
+- vendor/          : Pustaka pihak ketiga bawaan framework (dikelola Composer)
+- writable/        : File runtime (cache segmen HLS CCTV aktif, log, session aktif, writable/bin)
+- .env             : File kredensial dan konfigurasi lokal terlindungi
+- backup_prompt*   : Salinan backup dari prompt terdahulu (Prompt 29, 30, 31)
+- backup tujuan    : Folder backup itu sendiri tidak dicadangkan rekursif
+
+--------------------------------------------------------------------------------
+4. PANDUAN PEMULIHAN (ROLLBACK)
+--------------------------------------------------------------------------------
+Jika diperlukan pemulihan ke kondisi sebelum pembersihan:
+Salin kembali file dari folder `backup_prompt46_sebelum_pembersihan_20261016-100927/`
+ke root proyek sesuai struktur path relatifnya.
+Jangan menyentuh .env, database, writable/bin, atau segmen HLS CCTV yang sedang berjalan.
+================================================================================

@@ -1,0 +1,953 @@
+================================================================================
+DOKUMEN PROGRES PROYEK & KONTEKS SISTEM (UNTUK SESI BARU ANTIGRAVITY)
+SISTEM MONITORING KENDARAAN OVER DIMENSION - DISHUB KOTA BANJARBARU
+================================================================================
+Tanggal Penyusunan : 11 Oktober 2026 (Diperbarui pada Prompt 27: Integrasi 6 Kartu Live CCTV Banjarbaru di Beranda & Perapihan Tampilan)
+Lokasi Repositori  : d:\Project Coding Daus\Web\Sistem Monitoring Over Dimension Dishub
+Framework          : CodeIgniter 4 (PHP 8.2+)
+Database           : MySQL / MariaDB (XAMPP) - Database: `monitoring_dishub`
+Server Pengujian   : http://localhost:8080 (php spark serve)
+CSS / Styling      : Bootstrap 5.3 + Vanilla CSS kustom (public/assets/css/style.css)
+Tipografi Publik   : Google Font 'Source Sans 3' (dimuat di layout publik)
+Libraries / Vendor : Leaflet.js (Peta), Chart.js (Grafik), HLS.js (Video Stream)
+Streaming Engine   : FFmpeg Portabel (writable\bin\ffmpeg.exe) + WMI Win32_Process
+Hardware NVR       : Vivotek NVR ND9541 (IP: 10.0.1.3, RTSP Port: 8554)
+================================================================================
+
+--------------------------------------------------------------------------------
+1. DESKRIPSI & TUJUAN SISTEM
+--------------------------------------------------------------------------------
+Aplikasi web pemantauan dan pengawasan kendaraan kelebihan dimensi (Over Dimension /
+ODOL) berbasis integrasi titik kamera CCTV di persimpangan jalan protokol Kota
+Banjarbaru. Sistem ini menyediakan:
+1. Portal Publik:
+   - Edukasi masyarakat mengenai regulasi, dampak bahaya, dan perbedaan Over Dimension vs Over Loading.
+   - Peta interaktif Leaflet.js persebaran titik kamera pemantauan lalu lintas.
+   - Tayangan video streaming Live CCTV langsung dari NVR kantor Dishub Banjarbaru (dengan tayangan uji ATCS Banjarmasin).
+   - Dashboard analitik publik data deteksi harian & mingguan.
+2. Portal Administrator Terproteksi:
+   - Autentikasi aman berbasis database (tabel `admin_users`, bcrypt, rate-limiting, proteksi session fixation, no-cache).
+   - Dashboard analitik lalu lintas dan keparahan pelanggaran dimensi kendaraan.
+   - Rekapitulasi tabel hasil deteksi AI (128 rekaman deterministik) dengan modal inspeksi dimensi, toleransi batas, dan bounding box kendaraan.
+
+--------------------------------------------------------------------------------
+2. ARSITEKTUR & STRUKTUR FILE UTAMA
+--------------------------------------------------------------------------------
+app/
+ â”œâ”€â”€ Commands/
+ â”‚    â””â”€â”€ AdminBootstrap.php           -> CLI `spark admin:bootstrap` untuk inisialisasi akun admin
+ â”œâ”€â”€ Config/
+ â”‚    â”œâ”€â”€ Routes.php                   -> Rute publik, admin, dan reverse proxy streaming
+ â”‚    â”œâ”€â”€ Filters.php                  -> Filter global (CSRF, AdminAuthFilter)
+ â”‚    â””â”€â”€ Database.php                 -> Konfigurasi database MySQL
+ â”œâ”€â”€ Controllers/
+ â”‚    â”œâ”€â”€ Home.php                     -> Beranda publik (/)
+ â”‚    â”œâ”€â”€ Dashboard.php                -> Dashboard analitik publik (/dashboard)
+ â”‚    â”œâ”€â”€ LiveCctv.php                 -> Tayangan Live CCTV (/live-cctv)
+ â”‚    â”œâ”€â”€ Peta.php                     -> Peta Interaktif Titik CCTV (/peta-cctv)
+ â”‚    â”œâ”€â”€ Tentang.php                  -> Edukasi Over Dimension & Profil Dishub Banjarbaru
+ â”‚    â”œâ”€â”€ CctvProxy.php                -> Reverse proxy HLS m3u8/ts stream & snapshot aman
+ â”‚    â””â”€â”€ Admin/
+ â”‚         â”œâ”€â”€ AuthController.php      -> Login, logout, ubah sandi, rate limiting, sesi
+ â”‚         â”œâ”€â”€ DashboardController.php -> Dashboard analitik internal admin
+ â”‚         â””â”€â”€ HasilDeteksiController.php -> Rekapitulasi deteksi AI, filter & modal detail
+ â”œâ”€â”€ Database/
+ â”‚    â””â”€â”€ Migrations/
+ â”‚         â””â”€â”€ 2026-10-07-024914_CreateAdminUsersTable.php -> Skema tabel `admin_users`
+ â”œâ”€â”€ Filters/
+ â”‚    â””â”€â”€ AdminAuthFilter.php          -> Guard autentikasi admin, verifikasi auth_version, no-cache
+ â”œâ”€â”€ Libraries/
+ â”‚    â”œâ”€â”€ DishubCameraLocationService.php -> Master metadata 4 persimpangan & 18 kamera Banjarbaru
+ â”‚    â”œâ”€â”€ VivotekCctvService.php       -> Registri ground-truth 18 kamera Vivotek & kanal NVR ND9541
+ â”‚    â”œâ”€â”€ AtcsCctvService.php          -> Konfigurasi 6 kamera live streaming ATCS Banjarmasin
+ â”‚    â””â”€â”€ DummyDataService.php         -> Single source of truth 128 record deteksi & statistik
+ â”œâ”€â”€ Models/
+ â”‚    â””â”€â”€ AdminUserModel.php           -> Model interaksi tabel `admin_users`
+ â””â”€â”€ Views/
+      â”œâ”€â”€ layout/                      -> Master template publik (main.php, navbar.php, footer.php)
+      â”œâ”€â”€ pages/
+      â”‚    â”œâ”€â”€ beranda.php             -> Halaman Beranda publik
+      â”‚    â”œâ”€â”€ dashboard.php           -> Halaman Dashboard analitik publik
+      â”‚    â”œâ”€â”€ live_cctv.php           -> Halaman Live CCTV (pemutar HLS, filter, overlay status)
+      â”‚    â”œâ”€â”€ peta.php                -> Halaman Peta Interaktif Titik CCTV (Leaflet.js)
+      â”‚    â”œâ”€â”€ tentang_dishub.php      -> Profil resmi instansi Dishub Banjarbaru
+      â”‚    â””â”€â”€ tentang_over_dimension.php -> Edukasi hukum & bahaya Over Dimension vs Over Load
+      â””â”€â”€ admin/
+           â”œâ”€â”€ auth/login.php          -> Halaman login administrator
+           â”œâ”€â”€ layout/                 -> Master template admin (sidebar, topbar, modals)
+           â””â”€â”€ pages/
+                â”œâ”€â”€ dashboard.php      -> Dashboard analitik administrator
+                â””â”€â”€ hasil_deteksi.php  -> Tabel & modal detail hasil deteksi AI
+public/
+ â”œâ”€â”€ assets/
+ â”‚    â”œâ”€â”€ css/
+ â”‚    â”‚    â”œâ”€â”€ style.css               -> Styling kustom utama publik (layout boxy, scoped Source Sans 3)
+ â”‚    â”‚    â””â”€â”€ admin.css               -> Styling khusus panel administrator
+ â”‚    â”œâ”€â”€ js/
+ â”‚    â”‚    â”œâ”€â”€ main.js                 -> Logika interaktif publik
+ â”‚    â”‚    â””â”€â”€ admin.js                -> Logika admin, AJAX modal deteksi, ganti sandi
+ â”‚    â”œâ”€â”€ vendor/
+ â”‚    â”‚    â”œâ”€â”€ leaflet/                -> Library Leaflet peta offline
+ â”‚    â”‚    â””â”€â”€ hls/                    -> Library Hls.js streaming video
+ â”‚    â””â”€â”€ img/                         -> Aset visual, logo Dishub, ilustrasi SVG, foto edukasi
+scripts/
+ â”œâ”€â”€ vivotek_relay.ps1                 -> Manajer background relay FFmpeg (WMI Win32_Process, RTSP ke HLS + JPEG)
+ â”œâ”€â”€ setup_ffmpeg.ps1                  -> Pengunduh / penyedia FFmpeg portabel
+ â””â”€â”€ run_relay_bg.ps1                  -> Helper peluncur background relay
+writable/
+ â”œâ”€â”€ bin/
+ â”‚    â””â”€â”€ ffmpeg.exe                   -> Executable portabel FFmpeg 7.x
+ â””â”€â”€ cache/
+      â”œâ”€â”€ vivotek_stream/              -> Direktori HLS playlist (.m3u8), segmen (.ts), dan snapshot.jpg per kamera
+      â””â”€â”€ vivotek_snapshot/            -> Cache cuplikan gambar kamera
+
+--------------------------------------------------------------------------------
+3. DAFTAR RUTE & ENDPOINT APLIKASI
+--------------------------------------------------------------------------------
+[PUBLIK]
+- GET /                         : Beranda utama
+- GET /live-cctv                : Tayangan Live CCTV (18 Titik Banjarbaru + 6 ATCS Banjarmasin)
+- GET /dashboard                : Dashboard analitik publik (grafik, statistik, ringkasan deteksi)
+- GET /peta-cctv                : Peta Interaktif Titik CCTV (Leaflet.js)
+- GET /tentang-dishub           : Profil instansi Dishub Banjarbaru
+- GET /tentang-over-dimension   : Edukasi regulasi, dampak bahaya & perbandingan ODOL
+
+[STREAM & SNAPSHOT PROXY]
+- GET /cctv-stream/(:segment)/(:segment) : Proxy relay manifest .m3u8 & segmen video .ts
+- GET /cctv-snapshot/(:segment)          : Proxy snapshot cuplikan gambar kamera
+
+[ADMINISTRATOR]
+- GET  /admin                   : Redirect ke /admin/login atau /admin/dashboard
+- GET  /admin/login             : Form login administrator
+- POST /admin/login             : Proses login (CSRF + rate limited)
+- GET  /admin/dashboard         : Dashboard analitik admin (terproteksi sesi)
+- GET  /admin/hasil-deteksi     : Rekap tabel deteksi AI lengkap (terproteksi sesi)
+- POST /admin/ubah-kata-sandi   : AJAX ubah kata sandi admin (terproteksi CSRF)
+- POST /admin/logout            : Proses logout admin (terproteksi CSRF)
+
+--------------------------------------------------------------------------------
+4. STATUS & PENCAPAIAN INTEGRASI VIVOTEK NVR (18 TITIK KAMERA)
+--------------------------------------------------------------------------------
+Integrasi perangkat keras NVR Vivotek ND9541 kantor Dishub Banjarbaru telah selesai
+dilakukan dan dipetakan secara presisi berdasarkan hasil audit RTSP langsung.
+
+A. INFORMASI NVR KANTOR DISHUB BANJARBARU:
+   - Host / IP NVR    : 10.0.1.3 (Dikonfigurasi via `.env` -> vivotek.nvrHost)
+   - Port RTSP NVR    : 8554 (Dikonfigurasi via `.env` -> vivotek.nvrRtspPort)
+   - Port HTTP NVR    : 80
+   - Kredensial RTSP  : Disimpan aman di `.env` (vivotek.nvrUsername & vivotek.nvrPassword)
+   - Format URL RTSP  : rtsp://user:pass@10.0.1.3:8554/Media/Live/Normal?camera=C_{chan}&streamindex={stream}
+
+B. REGISTRI GROUND TRUTH 18 KAMERA BANJARBARU (TERVERIFIKASI PROMPT 20):
+   Total: 18 Titik (17 Terpasang Fisik, 1 Belum Tersedia di Lapangan).
+   Hasil Audit Terarah: 16 Kamera Aktif Streaming Live, 1 Belum Tersedia (BJB-ROULIN-F3),
+   dan 1 Rusak Fisik di Lapangan (BJB-SAMSAT-F1).
+   Perbedaan Penomoran Terbukti: ID Kanal RTSP NVR ND9541 bernomor C_1 hingga C_19
+   (sama persis dengan nomor urut tampilan pada sidebar antarmuka NVR Vivotek).
+
+   1. SIMPANG TIGA RO ULIN (4 Titik: 3 Aktif Live, 1 Belum Tersedia):
+      - BJB-ROULIN-F1  | Kanal C_1  | Stream 1 | H.265 | 10.0.1.135 | STATUS: AKTIF LIVE (Gadget Mart)
+      - BJB-ROULIN-F2  | Kanal C_2  | Stream 1 | H.265 | 10.0.1.136 | STATUS: AKTIF LIVE (Median Jalan & Parkir Motor)
+      - BJB-ROULIN-F3  | Kanal C_3  | Stream 1 | H.265 | 10.0.1.17  | STATUS: Belum Tersedia di Lapangan (Slot Logo Vivotek)
+      - BJB-ROULIN-PTZ | Kanal C_4  | Stream 1 | H.264 | 10.0.1.134 | STATUS: AKTIF LIVE (Persimpangan Marka X)
+
+   2. SIMPANG TIGA BRIMOB (4 Titik: 4 Aktif Live 100%):
+      - BJB-BRIMOB-F1  | Kanal C_5  | Stream 1 | H.264 | 10.0.1.103 | STATUS: AKTIF LIVE (Optik Billy Jaya)
+      - BJB-BRIMOB-F2  | Kanal C_6  | Stream 1 | H.265 | 10.0.1.104 | STATUS: AKTIF LIVE (Pagar Biru & Rumah Seng)
+      - BJB-BRIMOB-F3  | Kanal C_7  | Stream 1 | H.264 | 10.0.1.18  | STATUS: AKTIF LIVE (Tembok Tinggi & Overlay 1970)
+      - BJB-BRIMOB-PTZ | Kanal C_8  | Stream 1 | H.264 | 10.0.1.102 | STATUS: AKTIF LIVE (Tiang Listrik & Marka X)
+
+   3. SIMPANG EMPAT SAMSAT (5 Titik: 4 Aktif Live, 1 Rusak di Lapangan):
+      - BJB-SAMSAT-F1  | Kanal C_9  | Stream 1 | H.264 | 10.0.4.18  | STATUS: Tidak Aktif (Kerusakan Perangkat Fisik)*
+      - BJB-SAMSAT-F2  | Kanal C_10 | Stream 1 | H.265 | 10.0.4.19  | STATUS: AKTIF LIVE (Overlay "Samsat Fase 2")
+      - BJB-SAMSAT-F3  | Kanal C_11 | Stream 1 | H.265 | 10.0.4.20  | STATUS: AKTIF LIVE (Overlay "Samsat Fase 3")
+      - BJB-SAMSAT-F4  | Kanal C_12 | Stream 1 | H.265 | 10.0.4.21  | STATUS: AKTIF LIVE (Overlay "Samsat Fase 4")
+      - BJB-SAMSAT-PTZ | Kanal C_13 | Stream 1 | H.264 | 10.0.4.17  | STATUS: AKTIF LIVE (Overlay "Samsat PTZ")
+      *Catatan: BJB-SAMSAT-F1 tetap berstatus offline_damaged sesuai mandat user.
+
+   4. SIMPANG EMPAT ADIPURA (5 Titik: 5 Aktif Live 100%):
+      - BJB-ADIPURA-F1  | Kanal C_15 | Stream 1 | H.265 | 10.0.3.18 | STATUS: AKTIF LIVE (Taman Van Der Pijl)
+      - BJB-ADIPURA-F2  | Kanal C_16 | Stream 1 | H.265 | 10.0.3.19 | STATUS: AKTIF LIVE (Pot Bunga Bougenville)
+      - BJB-ADIPURA-F3  | Kanal C_17 | Stream 1 | H.265 | 10.0.3.20 | STATUS: AKTIF LIVE (Deretan Toko & Kafe)
+      - BJB-ADIPURA-F4  | Kanal C_18 | Stream 1 | H.265 | 10.0.3.21 | STATUS: AKTIF LIVE (Atap Hijau & Parkir Mobil)
+      - BJB-ADIPURA-PTZ | Kanal C_19 | Stream 1 | H.264 | 10.0.3.17 | STATUS: AKTIF LIVE (Tugu Adipura Bundaran)
+
+C. ARSITEKTUR RELAY BACKGROUND (WMI Win32_Process):
+   - Script Pengendali: `scripts/vivotek_relay.ps1`
+   - Eksekusi FFmpeg dijalankan melalui WMI (`Win32_Process.Create` / `ShowWindow = 0`).
+     Proses FFmpeg berjalan di latar belakang TANPA MEMUNCULKAN JENDELA CMD / POWERSHELL POPUP
+     di layar komputer pengguna, dan proses tetap bertahan ketika terminal ditutup.
+   - Dual-Output FFmpeg Simultan:
+     1. Segmen Video HLS: `-f hls -hls_time 2 -hls_list_size 3 -hls_flags delete_segments+split_by_time index.m3u8`
+     2. Cuplikan Foto JPEG: `-vf fps=1/5 -update 1 -y snapshot.jpg` (diperbarui otomatis setiap 5 detik)
+   - Transcoding Adaptif & Optimasi HLS:
+     * Kamera H.264: Menggunakan `-c:v copy` (passthrough tanpa transcode, hemat CPU < 1%).
+     * Kamera H.265: Menggunakan transcode ultrafast ke H.264 dengan parameter:
+       `-c:v libx264 -preset ultrafast -tune zerolatency -crf 26 -x264-params repeat-headers=1:keyint=30:min-keyint=30:scenecut=0`
+       Parameter `repeat-headers=1` memastikan setiap segmen TS memiliki header SPS/PPS mandiri
+       sehingga player browser dan Hls.js dapat langsung memulai pemutaran tanpa kendala on-existing PPS 0.
+
+--------------------------------------------------------------------------------
+5. STATUS LENGKAP HALAMAN & FITUR APLIKASI
+--------------------------------------------------------------------------------
+
+A. HALAMAN BERANDA (/)
+   - Hero Section bersih, tipografi Source Sans 3, badge status, tombol CTA.
+   - 4 Stat Cards: CCTV Terpantau (16/17 - 16 online, 1 offline), Total Deteksi (128),
+     Over Dimension (34), Truk Kontainer (41).
+   - Tombol "Tentang Over Dimension ->" berikon panah kanan di samping tombol CTA.
+   - Bagian "Pantauan CCTV Terkini":
+     * Menampilkan tepat 6 kartu CCTV Banjarbaru aktif secara dinamis (BJB-BRIMOB-F1 s/d BJB-ROULIN-F2) bersumber dari DishubCameraLocationService.
+     * Paragraf lama sumber ATCS Banjarmasin beserta link dan bullet telah dihapus bersih.
+     * Tampilan 3 kartu per baris desktop (col-lg-4 col-md-6, 2 baris total) dengan hide_redundant_badges=true.
+     * Link tiap kartu menautkan langsung ke /live-cctv?cctv=KODE_KAMERA.
+     * Tombol "Lihat Semua CCTV" mengarah ke /live-cctv.
+   - Bagian "Lokasi CCTV":
+     * Proporsi presisi 50:50 (50% kolom teks informasi, 50% kolom gambar peta) pada desktop (>=992px).
+     * Tampilan mobile mengalir vertikal (teks terlebih dahulu, gambar di bawah).
+     * Tombol "Buka Peta Interaktif" langsung menuju /peta-cctv.
+
+B. HALAMAN PETA INTERAKTIF (/peta-cctv)
+   - Peta interaktif Leaflet.js dengan basemap OpenStreetMap berpusat di Banjarbaru.
+   - 4 Marker Persimpangan Protokol: Brimob, RO Ulin, Samsat, Adipura.
+   - Deep-link dukungan fokus kamera dari URL query string (contoh: `?cctv=BJB-SAMSAT-F2`).
+   - Kotak Legenda Peta (Simpang Tiga, Simpang Empat, Pusat Koordinat) dengan divider `<hr>`.
+   - Subjudul bersih: "Total 4 persimpangan â€¢ 17 kamera" (keterangan rencana telah dibersihkan).
+   - Kartu 4 Persimpangan dengan tombol sejajar rata bawah (`mt-auto`):
+     * "Detail Simpang" (modal interaktif berujung rounded-pill).
+     * "Lihat di Peta" (smooth pan/zoom Leaflet ke lokasi terkait).
+     * "Lihat CCTV" (navigasi langsung ke `/live-cctv`).
+
+C. HALAMAN LIVE CCTV (/live-cctv)
+   - Header: "CCTV Dishub Kota Banjarbaru" (subjudul bersih: "Titik pemantauan pada 4 persimpangan utama Kota Banjarbaru", teks merah status sementara telah dihapus).
+   - Pemutar Player HLS Utama (Baseline Output 20 & Perapihan Prompt 26):
+     * Pemutar HLS.js dikonfigurasi bersih dan andal: `enableWorker: true`, `lowLatencyMode: false`, `backBufferLength: 30`.
+     * Indikator status video overlay dinamis (`LIVE`, `MEMUAT`, `BUFFERING`, `TERPUTUS`).
+     * Label overlay video di pojok layar: murni `Vivotek` (ikon perisai dipertahankan).
+     * Badge status duplikat di bawah player (`#playerStatusBadge`) dihapus; JS `setPlayerState` disesuaikan bebas error DOM.
+     * Footer player menampilkan info hardware `Vivotek ND9541 (10.0.1.3:8554)` tanpa karakter menggantung (badge Akses Jaringan Kantor tambahan dihapus).
+     * Header player mempertahankan badge `Jaringan Kantor`, `Vivotek Banjarbaru`, dan tipe kamera.
+     * FFmpeg relay portabel menggunakan profil output20 teruji: H.264 copy, H.265 transcode ultrafast, HLS time 2, list size 5, split by time, seg_%03d.ts.
+     * Reverse proxy `CctvProxy` menyajikan m3u8 dan segmen TS standar.
+     * Layar offline khusus untuk kamera rusak di lapangan (`BJB-SAMSAT-F1`) dan kamera belum tersedia (`BJB-ROULIN-F3`).
+     * Tombol "Lihat Posisi pada Peta Interaktif" langsung terhubung ke `/peta-cctv?cctv=...`.
+   - Filter Bar Sejajar Satu Baris: Semua Simpang (18 Titik / 17 Terpasang), Simpang Brimob (4), Simpang RO Ulin (4), Simpang Samsat (5), Simpang Adipura (5), serta kolom pencarian responsif.
+   - Grid Kartu CCTV Banjarbaru (18 Kartu):
+     * Penamaan format: `[Lokasi] [Fase/PTZ]` (contoh: Brimob Fase 1, Samsat PTZ).
+     * Thumbnail gambar memuat snapshot JPEG aktual dari cache proxy jika stream aktif, atau placeholder dinamis.
+     * Keterangan visual pada gambar tetap ada (`LIVE`, `Tidak Aktif`, `Belum Tersedia`, `Gambar Tersimpan`).
+     * Badge status duplikat di bagian putih kartu (`Live Streaming`, `Tidak Aktif`, `Gambar Tersimpan`) dihapus bersih.
+     * Tombol "Lihat Tayangan" membuka player di bagian atas halaman.
+     * Fitur tombol bintang favorit berbasis localStorage.
+
+D. HALAMAN DASHBOARD ANALITIK PUBLIK (/dashboard)
+   - Kartu "CCTV Terpantau" bernilai 16/17 (16 online, 1 offline) sebagai kartu PERTAMA.
+   - Diikuti Total Deteksi (128), Over Dimension (34), Normal (94), Truk Kontainer (41).
+   - Grafik tren deteksi 7 hari dan komposisi pelanggaran kendaraan berbasis Chart.js.
+   - Tabel ringkasan kendaraan terdeteksi hari ini bersumber dari DummyDataService.
+
+E. HALAMAN EDUKASI OVER DIMENSION (/tentang-over-dimension)
+   - Hero Section dengan ilustrasi transparan vektor SVG truk 3 sumbu yang presisi.
+   - Section "Perbedaan Over Dimension dan Over Load":
+     * Layout zigzag bersih proporsi 50:50 tanpa card-plain (Foto Kiri vs Teks Kanan, dan sebaliknya).
+     * Foto tunggal per kategori tampil utuh tanpa terpotong (pickup karung untuk Over Dimension, truk roda terangkat untuk Over Load).
+     * Jarak antar blok (spacing) lapang dan proporsional (96px desktop, 64px mobile via `.odol-comparison-section`).
+     * Tanpa ikon font; penjelasan teknis objektif (pengawasan AI dimensi vs timbangan tonase UPPKB).
+   - Section "Dampak Pelanggaran Over Dimension":
+     * 3 kartu foto ilustrasi nyata (kerusakan jalan, risiko kecelakaan, kemacetan lalu lintas) teks rata tengah.
+   - Section "Alur Kerja Sistem":
+     * 6 langkah berurutan dengan label "Rencana Integrasi" (CCTV Memantau -> Frame Diambil -> Kendaraan Dideteksi -> Dimensi Dianalisis -> Hasil Disimpan -> Ditampilkan di Dashboard) dengan panah kanan di desktop dan panah bawah di mobile.
+   - Section "Jenis Kendaraan dalam Pemantauan" (Truk, Pickup, Truk Kontainer).
+
+F. PANEL ADMINISTRATOR (DATABASE DRIVEN)
+   - Login aman `/admin/login` dengan rate limiting dan proteksi CSRF.
+   - Sesi terproteksi dengan header `Cache-Control: no-store` (mencegah akses via back button setelah logout).
+   - Fitur Ubah Kata Sandi via AJAX modal dengan regenerasi hash bcrypt dan update `auth_version`.
+   - `/admin/dashboard`: Analitik internal, kartu CCTV Terpantau (16/17) urutan pertama, grafik mingguan.
+   - `/admin/hasil-deteksi`: Tabel data 128 record deteksi AI, filter status/tanggal/simpang, ekspor data,
+     dan modal inspeksi detail kendaraan lengkap dengan visualisasi bounding box.
+
+G. PEMULIHAN STABILITAS CCTV & PENGHENTIAN EKSPERIMEN (PROMPT 25)
+   - Pembatalan Arah Percobaan Prompt 22, 23, dan 24:
+     Seluruh eksperimen buffer/latency, telemetri browser, supervisor proses, konsol terpisah,
+     dan virtual desktop dihentikan dan dibatalkan sepenuhnya sesuai instruksi pengguna.
+   - Pengarsipan & Pembersihan Aman:
+     Semua file eksperimen (skrip supervisor, konsol, file tes scratch, dan laporan pengujian)
+     telah dipindahkan ke arsip pemulihan di luar workspace aktif (`arsip_pemulihan_prompt25`).
+   - Pemulihan Konfigurasi Stabil:
+     * `scripts/vivotek_relay.ps1` dikembalikan ke baseline output20 murni (WMI detached, tanpa rate-limit paksa).
+     * `app/Controllers/CctvProxy.php` dikembalikan ke baseline output20 murni.
+     * `app/Views/pages/live_cctv.php` dikembalikan ke baseline output20 murni (tanpa modal telemetri).
+     * `start-system.ps1` dikembalikan ke startup sederhana satu perintah murni (output21).
+   - Seluruh 16 kamera Vivotek kembali berjalan stabil, dapat diputar di browser, dan sistem
+     dijalankan cukup dengan satu perintah startup sederhana tanpa loop/proses tambahan.
+
+H. PERAPIHAN KETERANGAN BERULANG DI HALAMAN LIVE CCTV (PROMPT 26)
+   - Pembersihan Keterangan Status Sementara:
+     * Menghapus teks merah "Status Online/Offline sementara" beserta bullet pemisah di bawah heading utama.
+     * Menghapus catatan teks status sementara pada placeholder detail kamera (keterangan koordinat PTZ dipertahankan).
+   - Pembersihan Badge Status Berulang pada Kartu CCTV:
+     * Menghapus badge duplikat di dekat nama kamera pada bagian putih kartu: "Live Streaming", "Tidak Aktif", dan "Gambar Tersimpan".
+     * Mempertahankan seluruh indikator status visual pada thumbnail/gambar kartu ("LIVE", "Tidak Aktif", "Gambar Tersimpan", "Belum Tersedia").
+     * Menggunakan parameter render `hide_redundant_badges` pada partial `cctv_card.php` sehingga tampilan kartu di Beranda tetap utuh tanpa perubahan.
+   - Perapihan Detail Player & Pembersihan DOM:
+     * Menghapus badge duplikat `Live Streaming` (`#playerStatusBadge`) di bawah player.
+     * Memperbarui fungsi JavaScript `setPlayerState` secara minimal (hanya bergantung pada `liveDot` dan `liveBadgeText`), sehingga indikator status pada overlay video tetap dinamis tanpa error DOM.
+     * Menghapus badge duplikat "Akses Jaringan Kantor" dan bullet menggantung pada footer player; teks "Vivotek ND9541 (10.0.1.3:8554)" tetap dipertahankan.
+     * Mengubah label overlay video di pojok layar dari "Vivotek â€¢ Jaringan Kantor" menjadi persis "Vivotek".
+     * Mempertahankan badge "Jaringan Kantor" pada header informasi kamera.
+
+I. INTEGRASI KARTU CCTV BANJARBARU DI BERANDA (PROMPT 27)
+   - Mengganti sumber data 6 kartu di bagian "Pantauan CCTV Terkini" pada Beranda (`Home.php`) dari `AtcsCctvService` menjadi `DishubCameraLocationService::getCamerasForLiveCctv()`.
+   - Menampilkan tepat 6 kartu kamera Banjarbaru teratas yang aktif dan terpasang:
+     1. BJB-BRIMOB-F1 (Brimob Fase 1)
+     2. BJB-BRIMOB-F2 (Brimob Fase 2)
+     3. BJB-BRIMOB-F3 (Brimob Fase 3)
+     4. BJB-BRIMOB-PTZ (Brimob PTZ)
+     5. BJB-ROULIN-F1 (RO Ulin Fase 1)
+     6. BJB-ROULIN-F2 (RO Ulin Fase 2)
+   - Menghapus seluruh paragraf sumber ATCS beserta link dan bullet di bawah heading "Pantauan CCTV Terkini".
+   - Menggunakan partial `cctv_card.php` dengan parameter `col_class => 'col-lg-4 col-md-6'` (susunan 3 kartu per baris, 2 baris pada desktop) dan `hide_redundant_badges => true` (tanpa badge status ganda di samping judul).
+   - Setiap tombol kartu menautkan langsung ke `live-cctv?cctv=KODE_KAMERA` dan tombol "Lihat Semua CCTV" tetap terarah ke `/live-cctv`.
+   - Membersihkan import dan inisialisasi yang tidak terpakai pada `Home.php`.
+
+--------------------------------------------------------------------------------
+6. PANDUAN PENGOPERASIAN & COMMAND LINE
+--------------------------------------------------------------------------------
+
+1. Satu Perintah Startup Terpadu (Direkomendasikan):
+   - Cukup jalankan satu perintah berikut di terminal root proyek:
+     `powershell -NoProfile -ExecutionPolicy Bypass -File .\start-system.ps1`
+   - Perintah ini secara otomatis:
+     * Menyalakan database MariaDB/MySQL lokal XAMPP (jika belum aktif).
+     * Menyalakan web server CodeIgniter 4 (port 8080) di latar belakang (tanpa popup jendela).
+     * Menguji keterjangkauan NVR Vivotek (10.0.1.3:8554) di jaringan kantor.
+     * Menyalakan seluruh 16 relay CCTV yang tersedia ke segmen HLS lokal.
+     * Mengembalikan prompt terminal secara instan ke pengguna (bebas blokir).
+   - Perintah pendukung:
+     * Cek status lengkap: `powershell -NoProfile -ExecutionPolicy Bypass -File .\start-system.ps1 -Action status`
+     * Hentikan seluruh sistem: `powershell -NoProfile -ExecutionPolicy Bypass -File .\start-system.ps1 -Action stop`
+     * Restart seluruh sistem: `powershell -NoProfile -ExecutionPolicy Bypass -File .\start-system.ps1 -Action restart`
+   - Panduan tertulis lengkap tersedia di: `CARA MENYALAKAN SISTEM.txt`
+
+2. Menjalankan Server Web Secara Manual (Opsional):
+   - Pastikan MySQL di XAMPP telah menyala.
+   - Buka PowerShell di folder proyek:
+     `& "D:\Apps\xampp\php\php.exe" spark serve --port 8080`
+   - Buka browser: `http://localhost:8080`
+
+3. Mengelola Background Relay CCTV Secara Manual (Opsional):
+   - Cek status seluruh relay:
+     `powershell -ExecutionPolicy Bypass -File .\scripts\vivotek_relay.ps1 -Action status`
+   - Menjalankan relay untuk seluruh kamera aktif (16 kamera aktif):
+     `powershell -ExecutionPolicy Bypass -File .\scripts\vivotek_relay.ps1 -Action start`
+   - Menjalankan relay per persimpangan:
+     `powershell -ExecutionPolicy Bypass -File .\scripts\vivotek_relay.ps1 -Action start -Intersection s3-brimob`
+     `powershell -ExecutionPolicy Bypass -File .\scripts\vivotek_relay.ps1 -Action start -Intersection s3-ro-ulin`
+     `powershell -ExecutionPolicy Bypass -File .\scripts\vivotek_relay.ps1 -Action start -Intersection s4-samsat`
+     `powershell -ExecutionPolicy Bypass -File .\scripts\vivotek_relay.ps1 -Action start -Intersection s4-adipura`
+   - Menjalankan relay kamera tertentu:
+     `powershell -ExecutionPolicy Bypass -File .\scripts\vivotek_relay.ps1 -Action start -Camera BJB-BRIMOB-F1`
+   - Menghentikan relay:
+     `powershell -ExecutionPolicy Bypass -File .\scripts\vivotek_relay.ps1 -Action stop`
+   - Membersihkan cache segmen video:
+     `powershell -ExecutionPolicy Bypass -File .\scripts\vivotek_relay.ps1 -Action clean`
+   - Melihat log diagnosa FFmpeg untuk kamera tertentu:
+     `powershell -ExecutionPolicy Bypass -File .\scripts\vivotek_relay.ps1 -Action diag -Camera BJB-BRIMOB-F1`
+
+3. Inisialisasi Akun Administrator (Jika Diperlukan):
+   - Jalankan: `& "D:\Apps\xampp\php\php.exe" spark admin:bootstrap`
+   - URL Login: `http://localhost:8080/admin/login`
+
+
+--------------------------------------------------------------------------------
+PROMPT 29 - PERBAIKAN TAYANGAN CCTV SENDAT & RELAY BERHENTI (12 OKTOBER 2026)
+--------------------------------------------------------------------------------
+1. CADANGAN LENGKAP SEBELUM PERUBAHAN:
+   - Cadangan aman tersimpan di: ackup_prompt29_20261012-094304
+   - Berisi seluruh berkas scripts, app, public, dan start-system.ps1 beserta hash SHA-256 (MANIFEST.txt)
+   - Petunjuk pemulihan (rollback) tercatat lengkap di manifest.
+
+2. BUKTI DIAGNOSIS TEKNIS & AKAR MASALAH (ROOT CAUSE):
+   A. Video Sendat / Freeze (Terutama Adipura PTZ & Seluruh Kamera H.264 Copy):
+      - Penyebab: Penggunaan -hls_flags delete_segments+split_by_time pada stream copy -c:v copy.
+      - Dampak: FFmpeg memotong segmen secara kaku pada durasi 2 detik tanpa menunggu IDR keyframe. Dihasilkan segmen-segmen non-keyframe cacat (durasi 0.000011s, resolusi 0x0, tanpa header SPS/PPS). HLS.js browser tidak dapat mendecode delta-frame tanpa keyframe referensi, memicu video freeze/sendat selama 1-3 detik.
+      - Selain itu, ketiadaan flag 	emp_file membuat reverse proxy berpotensi membaca segmen .ts yang baru terisi sebagian (race condition) saat rotasi segmen.
+   B. Relay Berhenti Sendiri (Terutama Samsat F2 & Roulin F2):
+      - BJB-SAMSAT-F2 (Kanal C_10): NVR merespons RTSP status 462 Destination Unreachable (method DESCRIBE failed: 462). Perangkat kamera fisik di persimpangan Samsat terbukti tidak terhubung/mati ke NVR, sehingga FFmpeg terminate setelah timeout koneksi.
+      - BJB-ROULIN-F2 (Kanal C_2): Stream NVR normal, relay sempat terhenti akibat fluktuasi/timeout jaringan sesaat (-timeout 8000000).
+      - Fungsi Show-Diag lama tidak menampilkan pesan error karena output FFmpeg detached tidak dialihkan ke file log.
+
+3. SOLUSI & IMPLEMENTASI BERSIH (MEMATUHI ATURAN TANPA REGRESI):
+   - Muxer HLS: Mengganti -hls_flags delete_segments+split_by_time menjadi -hls_flags delete_segments+temp_file di scripts/vivotek_relay.ps1. Pemotongan segmen kini 100% tersinkronisasi pada IDR keyframe dan ditulis atomik (.tmp -> .ts).
+   - Diagnostik Terpadu: Memperbarui fungsi Show-Diag pada scripts/vivotek_relay.ps1 untuk melakukan probe RTSP upstream otomatis ke NVR. Jika terjadi error seperti 462, operator langsung diberi penjelasan bahwa perangkat fisik kamera di lapangan tidak terhubung ke NVR.
+   - Idempoten & Pemulihan: scripts/vivotek_relay.ps1 -Action start hanya menyalakan kamera yang relay-nya mati tanpa mengganggu kamera yang sedang aktif.
+
+4. HASIL UJI COBA & VERIFIKASI AKHIR:
+   - Seluruh kamera H.264 (Adipura PTZ, Brimob F1, Brimob F3, Brimob PTZ, Roulin PTZ, Samsat PTZ): 100% segmen beresolusi valid penuh dan dimulai dengan IDR keyframe (0 segmen rusak).
+   - Status Sistem: 15 sumber kamera aktif streaming stabil, 1 menunggu media (Samsat F2 karena NVR 462), 2 dinonaktifkan (RO Ulin F3 & Samsat F1).
+   - Tidak ada proses atau jendela popup mengganggu; kestabilan operasional 100% terjaga.
+
+
+--------------------------------------------------------------------------------
+PROMPT 30 - AUDIT STREAM, RESOLUSI, FPS & BEBAN RELAY (12 OKTOBER 2026)
+--------------------------------------------------------------------------------
+1. CADANGAN LENGKAP SEBELUM PERUBAHAN:
+   - Cadangan aman tersimpan di: ackup_prompt30_20261012-104040
+   - Berisi 11 berkas utama (scripts, app, public, config, dan dokumen) dengan verifikasi hash SHA-256 di MANIFEST.txt.
+   - Cadangan Prompt 29 (ackup_prompt29_20261012-094304) tetap utuh terpisah.
+
+2. KOREKSI PENGGUNA TERKAIT KESEHATAN PROSES:
+   - Terkonfirmasi bahwa sejak perubahan Prompt 29, CMD/proses FFmpeg tidak mengalami penutupan sendiri lagi menurut pengamatan pengguna.
+   - Mekanisme launcher WMI yang bertahan saat ini dipertahankan 100% tanpa menambahkan supervisor atau launcher khusus yang berisiko regresi.
+
+3. TEMUAN KUNCI ADIPURA PTZ (DUA TAYANGAN DENGAN IP SAMA):
+   - Daftar kamera mencantumkan Adipura PTZ dengan variasi 25 FPS dan 50 FPS pada IP 10.0.3.17.
+   - Audit NVR ND9541 Kanal C_19 mengungkap:
+     * Stream 1 : H.264, 1920x1080 @ 50 FPS (sebelumnya dipakai relay, memicu penumpukan buffer dan delay beberapa detik).
+     * Stream 2 : H.264, 704x576 @ 25 FPS (substream resolusi rendah).
+     * Stream 3 : H.264, 1920x1080 @ 25 FPS (profil tayangan Vivotek web yang dirasakan pengguna lancar).
+   - Solusi Diterapkan: Mengubah registri BJB-ADIPURA-PTZ pada scripts/vivotek_relay.ps1 dan VivotekCctvService.php dari Stream = 1 ke Stream = 3.
+   - Hasil Pengujian Empiris 3 Menit (181 Detik):
+     * Interval GOP: Tepat, konstan 2.00 detik (2.0s, 2.0s, 2.0s, 2.0s).
+     * Durasi Segmen HLS: Tepat 2.000 detik per segmen.
+     * Ukuran Segmen: Turun dari ~750 KB ke ~240 KB (reduksi bandwidth >55%).
+     * Resolusi: Tetap 1920x1080 Full HD, Codec H.264 copy passthrough.
+     * Jumlah Freeze: 0 kali (100% kontinu tanpa jeda atau buffer stall).
+
+4. AUDIT PROFIL LENGKAP 16 KAMERA PADA NVR ND9541:
+   - Menghasilkan pemetaan lengkap Stream 1, 2, dan 3 untuk seluruh 16 kamera.
+   - Kamera H.265 (Adipura F1-F4, Samsat F2-F4, Brimob F2, Roulin F1) memiliki Stream 2 dalam format H.264 1280x720, menjelaskan referensi H.264 pada daftar kamera pengguna.
+   - Analisis Beban: CPU sistem ~73% dan RAM FFmpeg ~2.97 GB sebagian besar bersumber dari transcode software H.265 secara simultan.
+
+--------------------------------------------------------------------------------
+PROMPT 31 - PENERAPAN PROFIL STREAM OPTIMAL KE SELURUH CCTV BANJARBARU (12 OKTOBER 2026)
+--------------------------------------------------------------------------------
+1. CADANGAN LENGKAP SEBELUM PERUBAHAN:
+   - Cadangan dibuat di: backup_prompt31_20261012-112741
+   - Berisi 11 file lengkap (scripts, app, public, dokumen) dengan verifikasi hash SHA-256 dan petunjuk rollback di MANIFEST.txt.
+   - Cadangan Prompt 30 dan Prompt 29 tetap utuh terpisah.
+
+2. PENERAPAN PROFIL STREAM & PENGURANGAN TRANSCODE:
+   - Seluruh kamera fixed yang sebelumnya mentranscode H.265 Stream 1 kini dialihkan ke Stream 2 H.264 dengan mode copy passthrough (-c:v copy).
+   - BJB-ROULIN-F2 (Kanal C_2) dipertahankan pada Stream 1 H.265 transcode karena Stream 2 juga H.265 dan Stream 3 hanya 640x360.
+   - BJB-ROULIN-PTZ dipertahankan pada Stream 1 H.264 (1080p @ 30fps copy).
+   - BJB-ADIPURA-PTZ dipertahankan pada Stream 3 H.264 (1080p @ 25fps copy) yang telah disetujui pengguna.
+   - BJB-BRIMOB-PTZ memakai Stream 3 H.264 (640x360 @ 20fps copy).
+   - BJB-ADIPURA-F1 memakai Stream 3 H.264 (640x480 @ 15fps copy).
+   - BJB-ADIPURA-F4 memakai Stream 2 H.264 (1280x960 @ 30fps copy).
+   - Kamera lainnya (Roulin F1, Brimob F1-F3, Samsat F2-F4, Samsat PTZ, Adipura F2-F3) memakai Stream 2 H.264 (1280x720 copy).
+
+3. HASIL BEBAN SISTEM & EFISIENSI:
+   - Penggunaan CPU Sistem: Turun drastis dari 68.3% ke ~13.8% (penghematan beban CPU ~80%).
+   - RAM FFmpeg: Berkurang dari 2850.6 MB ke ~1525.6 MB (pengurangan memori ~47%).
+   - Ukuran Segmen HLS: Turun dari ~3.5 MB menjadi ~200 - 500 KB per segmen.
+
+4. STATUS KESTABILAN OPERASIONAL:
+   - Pemantauan kontinu 5 menit (300 detik, 10 sampel) membuktikan 15 relay aktif berjalan stabil terus-menerus tanpa ada proses yang mati/crash.
+   - Samsat Fase 2 (BJB-SAMSAT-F2) terkonfirmasi mengalami kendala jaringan fisik dari tiang ke NVR (-138/462 Destination Unreachable), tetap terkonfigurasi pada Stream 2 H.264 tanpa mengubah status manual.
+   - Tidak ada proses atau jendela CMD popup; eksekusi detached via CIM/WMI Win32_Process.Create tetap bertahan sempurna.
+
+--------------------------------------------------------------------------------
+PROMPT 32 - PENYESUAIAN TAMPILAN LOGIN ADMIN DENGAN FIGMA DAN DUA GAMBAR CCTV STATIS (12 OKTOBER 2026)
+--------------------------------------------------------------------------------
+1. KEBIJAKAN CADANGAN & PEMBERSIHAN FOLDER:
+   - Sesuai instruksi revisi pengguna, TIDAK ADA cadangan tambahan yang dibuat untuk pekerjaan ini.
+   - Folder cadangan sementara backup_prompt32_20261012_134411 telah diperiksa dan dihapus bersih dari workspace.
+   - Cadangan Prompt 29, 30, dan 31 tetap utuh tanpa disentuh.
+
+2. ASET STATIS LOKAL (public/assets/img/admin-login/):
+   - bg-monitoring-room.png (231.393 bytes): Gambar ruang pemantauan asli diekspor dari layer "Panel Identitas Sistem" node 61:7 Figma.
+   - brimob-fase-3.jpg (135.205 bytes): Snapshot statis Brimob Fase 3 (antrean kendaraan di jalan).
+   - brimob-ptz.jpg (31.001 bytes): Snapshot statis Brimob PTZ (persimpangan jalan).
+   - user.svg (542 bytes) & lock.svg (693 bytes): Ikon SVG lokal untuk field username & password.
+   - Seluruh aset dimuat 100% secara statis melalui base_url() tanpa HLS, m3u8, ts, websocket, atau pemanggilan NVR/relay.
+
+3. PENYESUAIAN TAMPILAN SESUAI FIGMA FRAME "ADMIN LOGIN" (Node ID 61:6, 1440 x 900):
+   - Layout dua panel penuh viewport browser (desktop ~38.9% kiri, ~61.1% kanan).
+   - Panel Kiri: Latar ruang pemantauan dengan lapisan navy rgba(15, 23, 42, 0.85), logo Dishub 44x44 dalam badge putih sudut 10px, tipografi "SISTEM MONITORING" (16px extra bold) dan "DINAS PERHUBUNGAN KOTA BANJARBARU" (10px bold uppercase), judul "Sistem Monitoring Over Dimension" (24px extra bold), serta dua thumbnail CCTV 226x110px bersudut 8px berdampingan (label "Brimob Fase 3" dan "Brimob PTZ" tanpa badge LIVE).
+   - Panel Kanan: Latar terang #F8FAFC, form container lebar maksimal 480px, judul "Masuk" (32px), field Username & Password tinggi 48px sudut 8px dengan ikon di kiri, tombol toggle mata password di kanan, tombol "Masuk Sekarang" (#EB8317 border #D1720F tinggi 46px sudut 8px), serta tautan "Kembali ke Halaman Pengunjung".
+   - Isolasi Tema Kotak: Aturan sudut 8px dan 10px diisolasi ketat di dalam .admin-login-body, sehingga aturan tema kotak (border-radius: 0 !important) pada dashboard admin, tabel deteksi, filter, modal akun, dan tombol lainnya tetap terjaga 100%.
+
+4. PENGUJIAN & VERIFIKASI:
+   - Sintaks PHP: php -l app/Views/admin/auth/login.php valid 100% tanpa error.
+   - HTTP Status: Seluruh aset lokal dan rute /admin/login mengembalikan status 200 OK.
+   - Visual Responsif: Diuji pada Desktop 1440x900, Desktop 1920x1080, Tablet 768x1024, dan Mobile 390x844. Tampilan proporsional, tanpa scroll horizontal, dan form tetap fokus.
+   - Validasi Error: Diuji pengiriman form kosong menghasilkan pesan "Username wajib diisi" dan "Kata sandi wajib diisi" dengan tata letak rapi.
+   - Kestabilan CCTV: Tidak ada konfigurasi streaming, relay, NVR, database, atau controller autentikasi yang diubah.
+
+--------------------------------------------------------------------------------
+PROMPT 33 - LOGIN ADMIN 50:50, FONT SOURCE SANS 3, WARNA ORANYE PENGUNJUNG, DAN FORM KOTAK (12 OKTOBER 2026)
+--------------------------------------------------------------------------------
+1. PENYESUAIAN DESAIN & KOMPONEN LOGIN:
+   - Panel Desktop Presisi 50:50:
+     * Menggunakan CSS Grid grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) pada .admin-login-layout.
+     * Batas kedua panel tepat di tengah layar (720px / 720px pada 1440px desktop; 960px / 960px pada 1920px).
+     * Batas max-width 560px dan min-width panel kiri dihapus; form container tetap berlebar maksimal 480px di tengah horizontal panel kanan.
+     * Tablet dan mobile beralih ke tata letak vertikal responsif tanpa scroll horizontal.
+   - Tipografi Source Sans 3:
+     * Dimuat resmi dari Google Fonts via <link> pada app/Views/admin/auth/login.php konsisten dengan halaman pengunjung.
+     * Mengganti seluruh deklarasi 'Inter' pada body, judul, label, input, tombol, dan thumbnail menjadi 'Source Sans 3'.
+     * Bobot teks disesuaikan dengan bobot yang dimuat (400, 500, 600, 700). Font icons Bootstrap Icons tetap terjaga.
+   - Warna Tombol Oranye Pengunjung:
+     * Background dan border tombol "Masuk Sekarang" diubah ke #F97316 (normal) dan #EA580C (hover/active/focus).
+     * Aksen border dan shadow fokus input diselaraskan ke #F97316.
+   - Sudut Kotak Siku-Siku (border-radius: 0):
+     * Input Username, Password, dan tombol submit "Masuk Sekarang" memiliki border-radius: 0 !important.
+     * Thumbnail CCTV tetap mempertahankan sudut halus 8px dan logo badge tetap 10px sesuai Prompt 32.
+
+2. KEBIJAKAN TANPA BACKUP TAMBAHAN:
+   - Tidak ada folder backup baru, salinan .bak, atau file arsip yang dibuat, mematuhi instruksi pengguna.
+   - Cadangan Prompt 29, 30, dan 31 tetap utuh tanpa perubahan.
+   - Seluruh fungsionalitas CCTV relay, FFmpeg, backend auth, dan database tetap berjalan normal.
+
+3. HASIL VERIFIKASI DOM BROWSER CHROME (CDP ENGINE):
+   - Desktop 1440x900: Visual width 720px, Form pane width 720px (Rasio 1.0000 = 50:50).
+   - Desktop 1920x1080: Visual width 960px, Form pane width 960px (Rasio 1.0000 = 50:50).
+   - Computed Font: 'Source Sans 3' terkonfirmasi aktif (isSourceSansLoaded: true).
+   - Computed Border-Radius: Input 0px, Tombol 0px, CCTV Thumbnail 8px.
+   - Computed Background Color Tombol: rgb(249, 115, 22) (#F97316).
+
+--------------------------------------------------------------------------------
+PROMPT 34 - LOGIN ADMIN 40:60, LATAR TUGU ADIPURA, JUDUL & CCTV DI TENGAH (12 OKTOBER 2026)
+--------------------------------------------------------------------------------
+1. PENYESUAIAN DESAIN & KOMPONEN LOGIN (5 PERMINTAAN PENGGUNA):
+   - Rasio Panel 40:60 pada Desktop:
+     * Menggunakan CSS Grid grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) pada .admin-login-layout.
+     * Menghasilkan proporsi tepat: 576px (40%) visual kiri dan 864px (60%) form kanan pada 1440px desktop.
+     * Menghasilkan proporsi tepat: 768px (40%) visual kiri dan 1152px (60%) form kanan pada 1920px desktop.
+     * Form tetap berlebar maksimal ~480px berada di tengah horizontal panel kanan.
+     * Responsif pada Tablet dan Ponsel beralih ke layout bertumpuk (100% width) tanpa overflow horizontal.
+   - Gambar Latar Tugu Adipura Senja:
+     * Foto pengguna disalin dari Downloads ke public/assets/img/admin-login/bg-tugu-adipura.jpg (138.347 bytes).
+     * Lapisan overlay navy gelap disetel ke opacity 0.50 (rgba(15, 23, 42, 0.50)) agar warna senja, langit sore, dan jejak cahaya lampu kendaraan terlihat jelas namun tipografi putih tetap sangat terbaca.
+   - Judul & Grup CCTV Berada di Tengah Panel Kiri:
+     * Area .admin-login-preview diposisikan di tengah vertikal dan horizontal panel kiri (margin-top: auto; margin-bottom: auto; margin-inline: auto; text-align: center; align-items: center; max-width: 480px;).
+     * Judul preview diposisikan text-align: center; dengan text-shadow halus untuk keterbacaan tinggi.
+     * Dua kartu thumbnail CCTV statis (Brimob Fase 3 dan Brimob PTZ) berpusat di tengah (margin-inline: auto; justify-content: center; max-width: 464px;).
+     * Logo Dishub dan identitas instansi tetap berada di kiri atas panel visual.
+   - Perubahan Teks Identitas Sistem:
+     * Teks brand .admin-login-brand-title diubah menjadi "Dinas Perhubungan Banjarbaru" (teks 'Sistem Monitoring' dihilangkan dari header kiri atas, ukuran teks diperbesar ke 20px dan diselaraskan secara vertikal dengan logo box 48px).
+   - Perubahan Judul Utama Panel Kiri:
+     * Teks judul preview .admin-login-preview-title diubah menjadi "Sistem Monitoring Over Dimension <br> Halaman Admin".
+
+2. ATURAN YANG DIPERTAHANKAN DARI PROMPT SEBELUMNYA:
+   - Tipografi: Konsisten Google Fonts 'Source Sans 3' (bobot 400, 500, 600, 700).
+   - Warna Tombol: Oranye khas pengunjung #F97316 (normal) dan #EA580C (hover/active), teks putih.
+   - Sudut Kotak Siku-Siku: Input dan tombol submit memiliki border-radius: 0 !important;.
+   - Snapshot CCTV Statis: Brimob Fase 3 dan Brimob PTZ (radius 8px, tanpa video/HLS/polling/LIVE badge).
+   - Fungsionalitas Autentikasi: CSRF protection, pesan validasi error (Username & Password wajib diisi), old input, toggle mata password, dan tautan kembali ke beranda pengunjung berfungsi sempurna.
+   - Tanpa Cadangan Tambahan: Tidak ada folder backup baru yang dibuat (kebijakan efisiensi penyimpanan).
+
+3. HASIL VERIFIKASI DOM BROWSER CHROME (CDP ENGINE):
+   - Desktop 1440x900: Visual width 576px (40.00%), Form pane width 864px (60.00%).
+   - Desktop 1920x1080: Visual width 768px (40.00%), Form pane width 1152px (60.00%).
+   - Tablet 768x1024: Visual width 768px (100%), Form pane width 768px (100%).
+   - Mobile 390x844: Visual width 390px (100%), Form pane width 390px (100%).
+   - Computed Font: 'Source Sans 3' terkonfirmasi aktif (isSourceSansLoaded: true).
+   - Computed Border-Radius: Input 0px, Tombol 0px, CCTV Thumbnail 8px.
+   - Computed Background Color Tombol: rgb(249, 115, 22) (#F97316).
+   - Computed Preview Title Alignment: 'center'.
+   - Pengujian Error Form Kosong: Mengembalikan 2 error validasi ("Username wajib diisi", "Kata sandi wajib diisi") dengan border merah tegas dan ikon peringatan.
+
+--------------------------------------------------------------------------------
+PROMPT 35 - SEDIKIT PERKECIL TEKS INSTANSI DAN LOGO PADA LOGIN ADMIN (12 OKTOBER 2026)
+--------------------------------------------------------------------------------
+1. PENYESUAIAN IDENTITAS LOGIN (.admin-login-brand):
+   - Ukuran Teks Instansi:
+     * .admin-login-brand-title disesuaikan dari 20px menjadi 18px pada desktop (Source Sans 3, bold 700, teks persis: "DINAS PERHUBUNGAN BANJARBARU", warna #FFFFFF).
+     * Pada tampilan ponsel (< 576px), font disesuaikan menjadi 16px proporsional dan tidak terpotong.
+   - Ukuran Wadah & Gambar Logo Dishub:
+     * Wadah logo .admin-login-logo-box disesuaikan dari 48x48px menjadi 40x40px pada desktop (36x36px pada ponsel).
+     * Gambar logo .admin-login-logo-img disesuaikan dari 40x40px menjadi 32x32px pada desktop (28x28px pada ponsel) dengan object-fit: contain tetap terjaga.
+   - Jarak & Kesejajaran:
+     * Gap antara logo dan teks instansi disesuaikan dari 16px menjadi 12px (10px pada ponsel), tetap sejajar vertikal (align-items: center).
+   - Seluruh Komponen Lain Tetap Utuh:
+     * Panel 40:60, background Tugu Adipura senja, judul tengah, 2 CCTV statis Brimob Fase 3 & PTZ, form masuk, font Source Sans 3, tombol oranye #F97316 / #EA580C, dan input boxy sudut 0px tetap terjaga.
+     * Tidak ada pembuatan backup tambahan (tanpa folder backup_prompt35).
+
+2. HASIL VERIFIKASI DOM BROWSER CHROME (CDP ENGINE):
+   - Desktop 1440x900: Brand text: "DINAS PERHUBUNGAN BANJARBARU", font size 18px, logo box 40x40px, logo img 32x32px, gap 12px.
+   - Mobile 390x844: Brand text: "DINAS PERHUBUNGAN BANJARBARU", font size 16px, logo box 36x36px, logo img 28x28px, gap 10px.
+   - Layout 40:60 tetap presisi (576px / 864px pada 1440px desktop).
+
+--------------------------------------------------------------------------------
+PROMPT 36 - BACKGROUND HERO BERANDA ILUSTRASI CCTV TRUK OVER DIMENSION (12 OKTOBER 2026)
+--------------------------------------------------------------------------------
+1. PENYESUAIAN ASET & HERO SECTION BERANDA:
+   - Aset Gambar CCTV Truk Over Dimension:
+     * Disalin dari folder magang ke public/assets/img/hero-cctv-overdimension-final.png (2172x724px panorama, 3.1 MB) dan versi WebP berbobot ringan 466 KB.
+     * Gambar adalah ilustrasi bergaya CCTV hasil generasi AI yang memperlihatkan truk over dimension muatan tinggi (kotak merah-oranye berlabel OVER DIMENSION), truk kuning (kotak hijau berlabel NORMAL), dan motor di sisi kanan jalan. (Bukan bukti hasil deteksi model aktual atau snapshot NVR Dishub).
+   - View Beranda (app/Views/pages/beranda.php):
+     * Diperbarui mengarah ke base_url('assets/img/hero-cctv-overdimension-final.png').
+     * Ditambahkan class terisolasi .hero-beranda agar tidak memengaruhi hero pada tentang_dishub.php.
+   - Styling & Overlay Kedalaman (public/assets/css/style.css):
+     * .hero-dishub.hero-beranda: background-position: right center; background-size: cover; min-height: 520px;. Truk over dimension, muatan, roda, dan kotak merah-oranye tetap utuh dalam frame desktop.
+     * Depth Gradient Overlay Desktop: linear-gradient(90deg, rgba(15,23,42,0.88) 0%, rgba(15,23,42,0.72) 36%, rgba(15,23,42,0.30) 65%, rgba(15,23,42,0.08) 100%). Bagian kiri gelap kontras untuk teks judul/deskripsi, sedangkan bagian kanan transparan (0.08) sehingga warna dan detail deteksi kendaraan terlihat tajam dan jelas.
+     * Penyesuaian Responsif: Pada tablet (80% center) dan mobile (85% center, overlay 0.82) teks tetap terbaca kontras dan fokus kendaraan tetap masuk frame tanpa overflow horizontal.
+   - Komponen Lain Terjaga:
+     * Judul SiMOver, deskripsi, tombol "Lihat Live CCTV" dan "Lihat Dashboard" tetap berfungsi.
+     * Tipografi Source Sans 3, navbar, dan 4 kartu statistik tetap utuh.
+     * Tanpa pembuatan backup tambahan (kebijakan efisiensi penyimpanan).
+
+2. HASIL VERIFIKASI DOM BROWSER CHROME (CDP ENGINE):
+   - Desktop 1440x900 & 1920x1080: Background terpasang dari aset lokal, teks kontras, kotak OVER DIMENSION dan NORMAL terlihat jelas, horizontal scroll = false.
+   - Tablet 768x1024 & Mobile 390x844: Teks terbaca jelas, gambar beradaptasi responsif, horizontal scroll = false.
+   - Status HTTP: Beranda dan aset gambar keduanya mengembalikan HTTP 200 OK.
+
+--------------------------------------------------------------------------------
+PROMPT 37 - HERO BERANDA: TRUK BAK NORMAL, ARAH BENAR, DAN GRADIEN MELALUI CSS (13 OKTOBER 2026)
+--------------------------------------------------------------------------------
+1. PENYESUAIAN ASET & HERO SECTION BERANDA:
+   - Aset Gambar Hero CCTV Final:
+     * Disalin ke public/assets/img/hero-cctv-truk-bak-tanpa-gradien.png (1678x937px, 2.57 MB) dan versi WebP 438 KB.
+     * Gambar bersih dari teks "Jakarta Traffic", "Altitude", dan peta/grid di kiri atas.
+     * Arus kendaraan konsisten: lajur kiri menjauhi kamera (dua truk lama yang melawan arah digantikan mobil yang searah), lajur kanan menuju kamera.
+     * Tiga truk NORMAL di lajur kanan memakai bak terbuka (kabin biru & dua kabin putih) berlabel kotak hijau NORMAL.
+     * Truk OVER DIMENSION di lajur kanan, truk kontainer berlabel KONTAINER, mobil-mobil berlabel hijau, dan panel CCTV kanan tetap utuh.
+     * Gambar adalah ilustrasi hasil edit imagegen, bukan snapshot aktual CCTV Dishub Banjarbaru atau bukti model inferensi.
+   - Sumber Background View Beranda (app/Views/pages/beranda.php):
+     * Diarahkan ke base_url('assets/img/hero-cctv-truk-bak-tanpa-gradien.png').
+     * Menggunakan kelas terisolasi .hero-dishub.hero-beranda.
+   - Gradien Hitam-Biru Melalui CSS (public/assets/css/style.css):
+     * Diterapkan pada .hero-dishub.hero-beranda .hero-overlay-depth tanpa memodifikasi file gambar (gambar murni tanpa gradien bawaan).
+     * Desktop: linear-gradient(110deg, rgba(0,0,0,0.84) 0%, rgba(7,14,34,0.72) 40%, rgba(15,38,85,0.55) 72%, rgba(30,58,138,0.40) 100%).
+     * Menghasilkan kontras tajam untuk teks hero di kiri, serta transparansi transisi biru/navy di kanan sehingga truk bak NORMAL, truk OVER DIMENSION, dan panel CCTV tetap tampak jelas.
+     * Penataan posisi: background-position: center center; background-size: cover; min-height: 520px;.
+   - Komponen Lain Terjaga:
+     * Judul SiMOver, deskripsi, kedua tombol hero, navbar, dan 4 kartu statistik tetap utuh.
+     * Tanpa pembuatan backup tambahan (tanpa folder backup_prompt37).
+
+2. HASIL VERIFIKASI DOM BROWSER CHROME (CDP ENGINE):
+   - Desktop 1440x900 & 1920x1080: Background aset terbaru termuat, teks kontras, kotak deteksi & panel CCTV terlihat tajam, horizontal scroll = false.
+   - Tablet 768x1024 & Mobile 390x844: Teks terbaca jelas, gambar beradaptasi responsif, horizontal scroll = false.
+   - Status HTTP: Beranda dan aset gambar keduanya mengembalikan HTTP 200 OK.
+
+--------------------------------------------------------------------------------
+PROMPT 38 - SEDIKIT GELAPKAN HERO DAN KEMBALIKAN NUANSA GRADIEN TAMPILAN AWAL (13 OKTOBER 2026)
+--------------------------------------------------------------------------------
+1. PENYESUAIAN OVERLAY CSS HERO BERANDA:
+   - Nuansa Gradien Awal:
+     * Diterapkan pada .hero-dishub.hero-beranda .hero-overlay-depth di public/assets/css/style.css tanpa mengubah berkas gambar (gambar tanpa gradien bawaan tetap dipertahankan).
+     * Desktop: linear-gradient(135deg, rgba(15, 23, 42, 0.94) 0%, rgba(15, 23, 42, 0.84) 45%, rgba(30, 58, 138, 0.65) 75%, rgba(249, 115, 22, 0.28) 100%).
+     * Mengembalikan nuansa navy gelap pekat dan kaya warna di sisi kiri dan tengah, transisi biru cobalt/royal yang kuat di kanan, serta aksen oranye tipis (0.28) di ujung kanan bawah.
+     * Sedikit lebih gelap dibanding Prompt 37 sehingga judul dan deskripsi hero sangat kontras, sementara seluruh truk bak NORMAL, truk OVER DIMENSION, truk KONTAINER, kotak deteksi hijau, dan panel CCTV tetap tampak jelas.
+   - Penyesuaian Responsif Tablet & Ponsel:
+     * Tablet: linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.82) 55%, rgba(30, 58, 138, 0.65) 100%).
+     * Ponsel: linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.85) 60%, rgba(30, 58, 138, 0.70) 100%).
+   - Komponen Lain Terjaga:
+     * Crop gambar center center, tinggi hero, font Source Sans 3, navbar, dan 4 kartu statistik tetap utuh.
+     * Tidak ada pembuatan backup tambahan (tanpa folder backup_prompt38).
+
+2. HASIL VERIFIKASI DOM BROWSER CHROME (CDP ENGINE):
+   - Desktop 1440x900 & 1920x1080: Computed overlayBg terverifikasi gradien 135deg navy-biru-oranye, teks sangat kontras dan terbaca, kotak deteksi dan truk terlihat tajam, horizontal scroll = false.
+   - Tablet 768x1024 & Mobile 390x844: Computed overlayBg navy-biru vertikal terverifikasi aktif, teks sangat terbaca, horizontal scroll = false.
+
+--------------------------------------------------------------------------------
+8. CATATAN PENERAPAN PROMPT 39 (TRUK KUNING BAK TERBUKA & KONTAK FOOTER)
+--------------------------------------------------------------------------------
+1. ILUSTRASI TRUK KUNING BAK TERBUKA (public/assets/img/kendaraan-truk.svg):
+   - Diubah langsung pada berkas vektor SVG (viewBox 0 0 320 200).
+   - Warna kabin dan bak diubah menjadi kuning khas Mitsubishi Canter (#eab308 dan aksen #facc15).
+   - Model dasar, bentuk dan posisi kabin, arah hadap, kaca jendela (#dbeafe), rangka (#334155), panjang kendaraan, posisi & jumlah 3 roda (#0f172a, #94a3b8), serta proporsi kanvas dipertahankan persis.
+   - Bagian bak tertutup diubah menjadi bak terbuka dengan dinding samping lebih rendah (dropside wall), tiang pengaman belakang kabin (headboard), bibir atas bak, serta garis pembagi panel (#ca8a04) agar tetap terbaca jelas pada thumbnail 95px.
+   - Kartu Pickup dan Truk Kontainer, judul "Truk", dan deskripsi kartu tetap dipertahankan utuh.
+
+2. PEMBARUAN KONTAK FOOTER BERSAMA:
+   - Sumber Metadata (app/Libraries/DummyDataService.php - getSystemMeta()):
+     * Alamat: Jl. Karang Rejo, Guntungmanggis, Kec. Landasan Ulin, Kota Banjar Baru, Kalimantan Selatan 70731
+     * Telepon: (0511) 4772123
+     * Email: admin@dishub.banjarbarukota.go.id
+     * Instagram: https://www.instagram.com/dishub.bjb/?hl=id
+     * Facebook: https://www.facebook.com/dishubbanjarbaru/
+     * Website: http://www.dishub.banjarbarukota.go.id/
+   - Tampilan Footer (app/Views/layout/footer.php):
+     * Mempertahankan nomor telepon dan ikon bi bi-telephone me-2 serta email bi bi-envelope me-2 tanpa mengubah wadah/gaya ikon.
+     * Menambahkan 3 baris tautan sosial media & website di bawah email dengan ikon Bootstrap Icons: bi bi-instagram me-2 (@dishub.bjb), bi bi-facebook me-2 (Dishub Banjarbaru), dan bi bi-globe me-2 (dishub.banjarbarukota.go.id).
+     * Semua tautan eksternal menggunakan target="_blank" dan rel="noopener noreferrer".
+     * Penataan CSS .footer-contact-clean a di style.css memastikan tautan harmonis dengan palet footer (#CBD5E1 ke hover oranye) dan membungkus teks dengan rapi (word-break: break-word) di layar mobile.
+     * Logo instansi, navigasi halaman, update data, dan copyright bar tetap utuh.
+
+3. HASIL VERIFIKASI:
+   - PHP Syntax Lint: Bebas dari error sintaks (No syntax errors detected).
+   - HTTP Status: 200 OK pada /tentang-over-dimension dan /.
+   - Visual Verification:
+     * Desktop & Mobile DOM membuktikan teks alamat baru, nomor telepon, email, tautan Instagram, Facebook, dan Website tampil sempurna.
+     * Kartu Truk tampil kuning bak terbuka khas Canter serasi dengan kartu lainnya.
+     * Tidak ada pembuatan backup tambahan (tanpa folder backup_prompt39).
+
+--------------------------------------------------------------------------------
+9. CATATAN PENERAPAN PROMPT 40 (BINTANG HANYA LIVE CCTV & PRIORITAS FAVORIT)
+--------------------------------------------------------------------------------
+1. HILANGKAN TOMBOL BINTANG DI BERANDA:
+   - Partial app/Views/partials/cctv_card.php ditambahkan opsi $show_favorite (default false).
+   - Tombol favorit (<button class="cctv-fav-btn">) hanya dirender jika $show_favorite == true.
+   - app/Views/pages/beranda.php mengirim 'show_favorite' => false: Semua 6 kartu Beranda bebas dari tombol bintang maupun ruang kosong penggantinya.
+   - app/Views/pages/live_cctv.php mengirim 'show_favorite' => true: Semua 18 kartu di Live CCTV tetap memiliki tombol bintang.
+
+2. PRIORITAS PENGURUTAN KARTU FAVORIT DI LIVE CCTV:
+   - Pengurutan dan penanganan favorit dibatasi secara ketat pada elemen #cctvGridContainer di public/assets/js/main.js. Halaman Beranda tidak menjalankan pengurutan.
+   - Setiap elemen kartu menyimpan data-original-index dari urutan render server saat inisialisasi awal.
+   - Pengurutan 2 kelompok: Kelompok 1 (Favorit) di posisi paling atas, Kelompok 2 (Kartu Biasa) di posisi bawahnya.
+   - Dalam setiap kelompok, urutan asli server (originalIndex) tetap dipertahankan secara konsisten.
+   - Reordering dilakukan menggunakan native gridContainer.appendChild(card) pada elemen yang sudah ada tanpa kloning atau innerHTML ulang, sehingga elemen pemutar video di atas tidak pernah terganggu.
+   - Saat bintang diklik, status kartu, ikon bi-star/bi-star-fill, title, aria-label, aria-pressed, dan urutan kartu di-update secara instan tanpa reload halaman.
+   - Saat bintang dilepas, kartu kembali ke urutan asalnya di antara kartu biasa (bukan ditaruh di paling bawah).
+   - Jika semua bintang dilepas, urutan 18 kartu kembali 100% persis seperti urutan awal dari server.
+   - Pembacaan & penyimpanan localStorage (dishub_fav_cctv) dilengkapi validasi tipe array string unik dan penanganan error yang aman.
+   - Filter simpang & pencarian tetap berjalan harmonis: favorit muncul di atas di antara kartu yang cocok, kartu yang tidak cocok tetap disembunyikan. Reset filter memulihkan semua kartu tanpa menghapus data favorit.
+
+3. HASIL VERIFIKASI INTERAKTIF (CDP AUTOMATION & SCREENSHOT):
+   - Beranda: 6 kartu terdeteksi, 0 tombol bintang (beranda_cctv_tanpa_bintang.png).
+   - Live CCTV: 18 kartu terdeteksi, 18 tombol bintang aktif (live_cctv_favorit_atas.png).
+   - Skenario pengujian interaktif (1 favorit, multi favorit, unstar sebagian, unstar total, filter, pencarian, dan reset) lolos 100%.
+   - Tanpa pembuatan folder backup baru (tanpa backup_prompt40).
+
+--------------------------------------------------------------------------------
+9.17 PEMBARUAN PROMPT 42: PERBAIKAN LAYOUT TENTANG DISHUB DENGAN FOTO GEDUNG & SNAPSHOT CCTV
+--------------------------------------------------------------------------------
+1. LATAR BELAKANG & KEPUTUSAN DESAIN:
+   - Pengguna memilih layout kombinasi dengan sedikit pola zigzag di bawah hero pada halaman /tentang-dishub.
+   - Pekerjaan tema light/dark mode Prompt 41 dibatalkan sesuai instruksi pengguna, sehingga antarmuka tetap konsisten pada tema standar yang telah diterima.
+   - Hero dipertahankan identik (latar gedung-dishub.jpg, judul Dinas Perhubungan Kota Banjarbaru, deskripsi, dan gradien depth overlay).
+   - Memanfaatkan 2 aset permanen pengguna:
+     a. Foto Kantor Dishub: public/assets/img/tentang-dishub/kantor-dishub.jpg (737 x 416 px).
+     b. Snapshot CCTV Brimob Fase 3: public/assets/img/tentang-dishub/brimob-fase-3.png (1920 x 1002 px).
+
+2. STRUKTUR & URUTAN BAGIAN HALAMAN TENTANG DISHUB:
+   - Bagian 1: Hero Eksisting (Tetap identik, background aerial kantor asli).
+   - Bagian 2: Profil Dishub (Desktop 50:50: Foto kantor-dishub.jpg di kiri, judul Tentang Dinas Perhubungan Kota Banjarbaru & 2 paragraf pengantar di kanan. Pada mobile: teks di atas, foto di bawah).
+   - Bagian 3: Tiga Peran Dishub (3 kolom kartu sejajar di desktop: Pengaturan Lalu Lintas, Pengawasan & Keselamatan, Penegakan Regulasi dengan ikon oranye dan border tipis rapi tanpa pembungkus kotak besar).
+   - Bagian 4: Pemantauan Berbasis CCTV (Pola zigzag: Teks penjelasan di kiri, snapshot CCTV brimob-fase-3.png di kanan. Statis tanpa badge LIVE palsu atau video player, warna alami kendaraan dan 2 truk di tengah-kanan tetap utuh).
+   - Bagian 5: Alur Kerja Pemantauan Dimensi (Area mandiri di bawah CCTV berisi 4 langkah horizontal 01-04: Perekaman Arus, Analisis Dimensi, Klasifikasi Data, Ringkasan Laporan, dilengkapi 2 tombol aksi: Buka Live CCTV dan Lihat Dashboard).
+   - Bagian 6: Footer Eksisting (Shared layout dengan kontak resmi Dishub hasil Prompt 39 tetap utuh).
+
+3. HASIL VERIFIKASI (DESKTOP & MOBILE):
+   - Desktop (1440px) & Mobile (390px) diverifikasi via headless Chrome CDP (scratch/tentang_dishub_desktop_full.png dan scratch/tentang_dishub_mobile.png).
+   - Kedua gambar dimuat sukses via base_url() dengan HTTP 200 tanpa distorsi.
+   - Halaman lain (Beranda, Live CCTV, Dashboard, Peta, Tentang Over Dimension) teruji 100% normal (HTTP 200).
+   - Sintaks PHP lolos php -l tanpa error, tanpa pembuatan folder backup baru.
+
+--------------------------------------------------------------------------------
+9.18 PEMBARUAN PROMPT 43: PENYEDERHANAAN HALAMAN TENTANG DISHUB
+--------------------------------------------------------------------------------
+1. LATAR BELAKANG & REVISI:
+   - Pengguna meminta menyederhanakan halaman /tentang-dishub dari hasil Prompt 42 dengan:
+     a. Menghapus seluruh elemen .tentang-badge (Profil Instansi, Tugas & Fungsi, Pengawasan Visual, Alur Pemantauan).
+     b. Menghapus pembungkus figure.tentang-figure, .tentang-img-wrap, dan figcaption.tentang-caption. Foto gedung dan snapshot CCTV kini tampil langsung di dalam kolom Bootstrap tanpa kartu pembungkus, tanpa border/shadow, dan tanpa caption.
+     c. Menghapus seluruh section Alur Kerja Pemantauan Dimensi (heading, deskripsi, kartu 4 langkah, dan kedua tombol navigasi).
+     d. Menghapus subjudul berulang pada bagian Peran ("Tugas dan fungsi dalam menjaga ketertiban lalu lintas jalan").
+     e. Membersihkan CSS rules di style.css (.tentang-figure, .tentang-caption, .tentang-badge, .tentang-step-*) yang sudah tidak digunakan.
+
+2. SUSUNAN AKHIR HALAMAN /tentang-dishub:
+   - 1. Hero Eksisting (Identik dengan foto udara kantor asli).
+   - 2. Profil Dishub: Foto kantor langsung di kolom kiri (desktop) / bawah (mobile), teks judul & 2 paragraf di kolom kanan (desktop) / atas (mobile).
+   - 3. Peran Dishub: Heading "Peran Dinas Perhubungan" dan 3 kartu peran (Pengaturan Lalu Lintas, Pengawasan & Keselamatan, Penegakan Regulasi).
+   - 4. Pemantauan CCTV: Teks di kolom kiri, snapshot CCTV brimob-fase-3.png langsung di kolom kanan.
+   - 5. Footer Bersama (Kontak resmi Dishub Prompt 39 tetap utuh).
+
+3. HASIL VERIFIKASI:
+   - Desktop (1440px) & Mobile (390px) diverifikasi via headless Chrome CDP (scratch/tentang_dishub_prompt43_desktop.png dan scratch/tentang_dishub_prompt43_mobile.png).
+   - Seluruh halaman lain termasuk workflow di /tentang-over-dimension tetap 100% utuh dan berfungsi normal.
+--------------------------------------------------------------------------------
+9.19 PEMBARUAN PROMPT 44: SUDUT TOMBOL DAN KARTU HALAMAN PENGUNJUNG SEDIKIT ROUNDED
+--------------------------------------------------------------------------------
+1. LATAR BELAKANG & REVISI DESAIN:
+   - Pengguna meminta sudut setiap tombol dan kartu pada halaman pengunjung sedikit dilengkungkan (subtle rounded), menghasilkan tampilan tetap tegas, rapi, formal, bukan kapsul dan bukan sangat bulat.
+   - Menggantikan paksaan border-radius 0 (!important) pada tombol dan kartu di blok TEMA KOTAK terdahulu.
+   - Berlaku khusus untuk 6 halaman pengunjung:
+     1) Beranda (/)
+     2) Live CCTV (/live-cctv)
+     3) Dashboard Pengunjung (/dashboard)
+     4) Peta Interaktif (/peta-cctv)
+     5) Tentang Dishub (/tentang-dishub)
+     6) Tentang Over Dimension (/tentang-over-dimension)
+   - Seluruh halaman admin (/admin/login, /admin/dashboard, dll.) tetap 100% terisolasi dan tidak terpengaruh.
+
+2. PENERAPAN VARIABEL & NILAI RADIUS:
+   - Variabel CSS publik:
+     `--public-button-radius: 6px;` (tombol standar)
+     `--public-button-sm-radius: 4px;` (tombol kecil .btn-sm & .btn-detail-rounded)
+     `--public-card-radius: 8px;` (kartu konten, panel, stat cards, video player, modal)
+   - Scope aturan pengunjung: dibatasi dengan `body.public-site`.
+   - Pemisahan aturan:
+     a. .btn-detail-rounded dipisahkan dari .cctv-status-badge (status badge tetap kapsul 999px, tombol detail menjadi 4px).
+     b. .stat-card-modern dikembalikan ke rounded semula (14px) sesuai instruksi pengguna, sementara .player-wrap dan kartu konten lainnya tetap 8px.
+     c. Form input, select, & search bar (.search-field-dishub) tetap bersudut kotak tegas (0px).
+     d. Penanda Leaflet (.bjb-marker-*), ikon bulat, status dots, dan logo tetap dipertahankan bentuk lingkarannya.
+     e. Tepi thumbnail CCTV & banner kartu (.cctv-thumb-wrap, .cctv-thumb-placeholder, .cctv-offline-box, .dampak-img-wrap) mengikuti lengkungan sudut atas kartu (8px top-left, 8px top-right) tanpa celah atau sudut putih keluar.
+
+3. BERKAS YANG DIUBAH:
+   - `public/assets/css/style.css`: Tambah variabel publik, refaktor TEMA KOTAK & pengecualian ke aturan scoped `body.public-site`.
+   - `app/Views/pages/tentang_over_dimension.php`: Tambah class `.odol-vehicle-card` dan hapus `rounded-0` pada kartu Truk, Pickup, Kontainer.
+   - `app/Views/pages/peta.php`: Hapus utility `rounded-0` pada kartu persimpangan.
+   - pp/Views/pages/beranda.php: Pembungkus gambar preview peta lokasi CCTV dikembalikan ke sudut kotak (rounded-0: 0px) seperti semula.
+
+4. HASIL VERIFIKASI:
+   - Computed style terukur via Chrome CDP:
+     * Tombol standar (.btn-dishub-primary, outline, filter-btn): 6px
+     * Tombol kecil (.btn-sm, .btn-detail-rounded): 4px
+     * Kartu statistik (.stat-card-modern): 14px (kembali ke bentuk rounded semula)
+     * Kartu konten & panel (.cctv-card-simple, .card-plain, .dampak-card, .odol-workflow-card, .odol-vehicle-card, .tentang-peran-card, .player-wrap, .modal-content): 8px
+     * Form input/search: 0px
+     * Badge status: 999px
+     * Tombol admin: 0px (tidak tersentuh)
+   - Uji Interaktivitas: Filter simpang, pencarian langsung, reset pencarian, toggle favorit, dan modal dialog simpang berfungsi 100% normal.
+   - Horizontal Scroll: Bebas horizontal scroll (hasHorizontalScroll=False) pada desktop (1440px) dan mobile (390px).
+   - Screenshot pengujian tersimpan pada direktori `scratch/`.
+   - Tanpa pembuatan folder backup baru (tanpa backup_prompt44).
+
+--------------------------------------------------------------------------------
+9.20 PEMBARUAN PROMPT 45: SUDUT TOMBOL & KARTU ADMIN SEDIKIT ROUNDED SERTA LABEL DETEKSI TANPA IKON
+--------------------------------------------------------------------------------
+1. LATAR BELAKANG & TUJUAN REVISI:
+   - Menyelaraskan panel administrator dengan dua arahan yang telah disetujui pengguna:
+     1) Tombol dan kartu/panel admin sedikit melengkung (subtle rounded, formal, tidak kapsul).
+     2) Label hasil deteksi (Over Dimension, Normal, Kontainer) hanya menampilkan teks tanpa ikon.
+   - Halaman utama sasaran:
+     * http://localhost:8080/admin/dashboard
+     * http://localhost:8080/admin/hasil-deteksi
+   - Tampilan login admin (/admin/login) dan halaman pengunjung tetap berada di luar cakupan Prompt 45 (tidak terpengaruh).
+
+2. PENERAPAN RADIUS SUDUT ADMIN:
+   - Variabel CSS di :root (public/assets/css/admin.css):
+     * `--admin-card-radius: 8px;` (kartu konten, panel filter, pembungkus tabel, modal)
+     * `--admin-btn-radius: 6px;` (tombol biasa)
+     * `--admin-btn-sm-radius: 4px;` (tombol kecil .btn-sm & paginasi)
+   - Aturan Scoped `body.admin-body`:
+     * Tombol biasa (.btn, .btn-admin-primary, .btn-admin-outline, .btn-admin-square): 6px !important
+     * Tombol kecil (.btn-sm, .btn-admin-primary.btn-sm, .btn-admin-outline.btn-sm, Portal Pengunjung, Terapkan, Reset, Semua Hasil Deteksi): 4px !important
+     * Paginasi (.admin-page-link, .page-link, nomor halaman, panah nav): 4px !important
+     * Kartu & panel (.admin-card, .card, .table-responsive-admin, .modal-content): 8px !important
+     * Kartu statistik mingguan (.admin-stat-card): TETAP 12px !important (mempertahankan lengkungan proporsional eksisting)
+     * Kartu insight mingguan (.admin-insight-card): TETAP 12px !important
+     * Form control & input (.form-control, .form-select, .input-group-text, .alert, .admin-login-box): TETAP 0px !important (bersudut kotak siku-siku formal)
+     * Pembungkus tabel (.table-responsive-admin): 8px !important dengan overflow-x: auto (menjaga horizontal scroll pada viewport kecil)
+   - Tombol kotak lama (.btn-admin-square): Class dihapus dari markup view admin dan aturannya diselaraskan ke radius baru.
+
+3. PENGHAPUSAN IKON DARI LABEL HASIL DETEKSI:
+   - Diterapkan pada 2 lokasi tabel admin:
+     1) Tabel Hasil Deteksi Terbaru Hari Ini di Dashboard Admin (app/Views/admin/pages/dashboard.php)
+     2) Tabel Hasil Deteksi Lengkap Hari Ini (app/Views/admin/pages/hasil_deteksi.php)
+   - Ikon yang dihapus dari markup HTML:
+     * Elemen <i> dengan class bi-check-circle-fill pada label Normal.
+     * Elemen <i> dengan class bi-exclamation-triangle-fill pada label Over Dimension.
+     * Seluruh elemen <svg> inline (termasuk rect & line) pada label Kontainer.
+   - Hasil akhir teks bersih:
+     * Label hijau: "Normal"
+     * Label oranye: "Over Dimension"
+     * Label biru: "Kontainer"
+   - Penataan CSS .badge-deteksi: Padding 3.5px 12px, border-radius 999px (pill), display inline-flex, justify-content: center, text-align: center, tanpa jarak kosong/offset di kiri teks.
+   - Seluruh ikon lain di panel admin tetap 100% utuh:
+     * Ikon SVG truk kontainer pada kartu statistik "Truk Kontainer 7 Hari" tetap ada.
+     * Ikon sidebar, logo, profil admin, heading grafik, ringkasan hasil, waktu pembaruan, empty state, corong Terapkan, dan Portal Pengunjung tetap utuh.
+
+4. BERKAS YANG DIUBAH:
+   - `public/assets/css/admin.css`: Variabel radius admin, pembaruan TEMA KOTAK ke sudut 8px/6px/4px/12px, styling .badge-deteksi centered, pembungkus tabel responsif 8px.
+   - `app/Views/admin/pages/dashboard.php`: Penghapusan elemen <i> dan <svg> pada badge tabel 5 hasil terbaru.
+   - `app/Views/admin/pages/hasil_deteksi.php`: Penghapusan class .btn-admin-square pada tombol Terapkan, penghapusan elemen <i> dan <svg> pada badge tabel lengkap.
+   - `app/Views/admin/layout/main.php`: Penghapusan class .btn-admin-square pada tombol Portal Pengunjung.
+   - `app/Views/admin/layout/account_modal.php`: Penyesuaian inline border-radius modal dialog ke var(--admin-card-radius, 8px).
+
+5. HASIL VERIFIKASI CHROME HEADLESS & COMPUTED STYLES:
+   - Dashboard Admin:
+     * Portal Pengunjung: 4px (.btn-sm)
+     * Kartu statistik mingguan (.admin-stat-card): 12px
+     * Ikon statistik (.admin-stat-icon): 10px
+     * Kartu insight (.admin-insight-card): 12px
+     * Kartu grafik & ringkasan (.admin-card): 8px
+     * Pembungkus tabel terbaru (.table-responsive-admin): 8px
+     * Tombol "Semua Hasil Deteksi": 4px (.btn-sm)
+     * SVG Kontainer pada kartu statistik 7 hari: ADA dan UTUH
+     * Ikon pada badge deteksi tabel: 0 (seluruh badge text-only)
+   - Halaman Hasil Deteksi:
+     * Kartu filter: 8px
+     * Select dropdown filter: 0px (tetap kotak formal)
+     * Tombol Terapkan: 4px (.btn-sm)
+     * Tombol Reset: 4px (.btn-sm)
+     * Pembungkus tabel deteksi (.table-responsive-admin): 8px
+     * Tombol paginasi (.admin-page-link): 4px
+     * Ikon pada badge deteksi tabel: 0 (seluruh badge text-only)
+   - Uji Interaksi Filter & Paginasi:
+     * Filter Truk + Over Dimension berhasil dieksekusi, menghasilkan 7 data dengan badge "Over Dimension" tanpa ikon.
+     * Tombol Reset tampil dengan radius 4px dan berfungsi membersihkan filter.
+     * Paginasi ke halaman 2 berhasil berpindah URL (?page=2), nomor aktif '2' beradius 4px, dan 10 badge di halaman 2 berstatus text-only tanpa ikon.
+   - Uji Non-Regresi (Read-Only):
+     * Halaman Login (/admin/login): Tombol 'Masuk Sekarang' 0px, form input 0px, cctv card 8px, logo box 10px (100% terjaga).
+     * Halaman Pengunjung (/): Tombol primer 6px, kartu statistik 14px (100% terjaga).
+   - Horizontal Scroll: Bebas horizontal scroll liar di seluruh halaman desktop (1440px) dan mobile (390px).
+   - Screenshot pengujian tersimpan pada direktori artifact:
+     * admin_dashboard_desktop_p45.png
+     * admin_dashboard_mobile_p45.png
+     * admin_hasil_deteksi_desktop_p45.png
+     * admin_hasil_deteksi_mobile_p45.png
+   - Tanpa pembuatan folder backup baru (tanpa backup_prompt45).
+
+--------------------------------------------------------------------------------
+10. LAPORAN PENGERJAAN PROMPT 46 (PEMBERSIHAN FILE & REFAKTOR BERTAHAP)
+--------------------------------------------------------------------------------
+Tanggal Selesai: 16 Oktober 2026
+Status: SELESAI & TERVERIFIKASI PENUH (100% NON-REGRESI)
+
+1. SATU BACKUP AWAL SEBELUM PEMBERSIHAN:
+   - Nama Folder: `backup_prompt46_sebelum_pembersihan_20261016-100927/`
+   - File Keterangan: `KETERANGAN_BACKUP_SEBELUM_PEMBERSIHAN.txt` (di root dan di dalam folder backup).
+   - Total: 1.366 file, 107.800.637 bytes (102,81 MB).
+   - Integritas: 100% SHA-256 match terverifikasi melalui `manifest.json`.
+   - Pengecualian: vendor/, writable/, .env, backup lama. Hanya dibuat SATU KALI sebelum perubahan pertama.
+
+2. PEMBERSIHAN SCRATCH & RESIDU FILE:
+   - Folder `scratch/` dibersihkan dari 1.178 file (~84,3 MB) menjadi bersih.
+   - Skrip diagnostik dipindahkan ke `scripts/diagnostics/` (`monitor_relays.ps1`, `verify_streams.ps1`, dsb).
+   - Skrip pengujian browser dipindahkan ke `tests/browser/` (`verify_computed_styles.py`, `test_interactivity.py`, dsb).
+   - File residu usang `Live` di root telah dihapus aman.
+
+3. PEMISAHAN & PENYEDERHANAAN CSS:
+   - `public/assets/css/style.css` berkurang dari 1.815 baris menjadi 758 baris.
+   - Dibuat modular: `pages/beranda.css`, `pages/cctv.css`, `pages/peta.css`, `pages/informasi.css`.
+   - `public/assets/css/admin.css` berkurang dari 1.291 baris menjadi 848 baris.
+   - Dibuat modular: `admin/login.css` (terisolasi untuk halaman login).
+   - Computed styles border-radius 100% identik dengan Prompt 44 & 45.
+
+4. EKSTRAKSI JAVASCRIPT & KODE VIEW:
+   - ~939 baris script inline view diekstrak menjadi file JS statis modular:
+     * `public/assets/js/pages/peta.js` (Peta Leaflet & modal simpang)
+     * `public/assets/js/pages/cctv-player.js` (Pemutar HLS, retry & watchdog)
+     * `public/assets/js/pages/dashboard.js` (Chart.js harian pengunjung)
+     * `public/assets/js/admin/dashboard.js` (Chart.js statistik & tren admin)
+   - Seluruh data server diserialisasi aman via JSON block (`application/json`) dan data attribute tanpa PHP mentah di JS.
+   - Dibuat partial bersama `app/Views/admin/partials/detection_badge.php` untuk badge deteksi text-only.
+
+5. KONSOLIDASI ASET & DOKUMENTASI:
+   - Pasangan gambar kembar identik dihapus: `gedung-dishub-asli.jpg` dan `peta-preview-banjarbaru.jpg`.
+   - Hero beranda menggunakan versi WebP (`hero-cctv-truk-bak-tanpa-gradien.webp`, 428 KB vs 2,46 MB PNG, dimensi sama 1678x937).
+   - `README.md` disusun ulang lengkap sebagai dokumentasi proyek SiMover.
+   - `docs/LAPORAN_PERAPIAN_PROMPT46.md` mendokumentasikan rincian lengkap pengerjaan.
+
+--------------------------------------------------------------------------------
+11. ATURAN KERAS & KONVENSI PROYEK (WAJIB DIPATUHI SESI BERIKUTNYA)
+--------------------------------------------------------------------------------
+1. STATUS MANUAL OVERRIDE KAMERA:
+   - `BJB-ROULIN-F3` WAJIB berstatus 'unavailable' (Belum Tersedia di Lapangan). Jangan diubah ke aktif.
+   - `BJB-SAMSAT-F1` WAJIB berstatus 'offline_damaged' (Rusak di Lapangan) sesuai keputusan user.
+   - Total kamera Banjarbaru adalah 18 titik (17 terpasang, 1 belum tersedia).
+2. EKSEKUSI PROSES FFMPEG TANPA POPUP:
+   - Jangan pernah menggunakan `Start-Process cmd.exe` biasa tanpa menyembunyikan jendela karena akan memunculkan popup CMD yang mengganggu layar pengguna. Selalu gunakan WMI `Win32_Process.Create` di `vivotek_relay.ps1`.
+3. PORTABEL BINARY:
+   - FFmpeg selalu dipanggil dari path portabel proyek: `writable\bin\ffmpeg.exe`.
+4. DESAIN & STYLING:
+   - Gunakan estetika modern clean boxy (border tegas, sudut rapi `rounded-3` atau sharp, shadow halus).
+   - Jangan gunakan TailwindCSS. Semua styling menggunakan Bootstrap 5.3 + Vanilla CSS di `style.css`.
+   - Font publik menggunakan 'Source Sans 3'. Halaman admin tetap terisolasi di `admin.css`.
+5. KEAMANAN & PRIVASI:
+   - Jangan pernah mengekspos IP, port, atau kredensial RTSP NVR ke dalam view/HTML sisi klien.
+   - Semua tayangan harus melalui reverse proxy `CctvProxy.php` (`/cctv-stream/...` dan `/cctv-snapshot/...`).
+
+================================================================================
+DOKUMEN INI SIAP DISALIN KE SESI CHAT BARU ANTIGRAVITY.
+SELURUH SISTEM, FILE, DAN DEPENDENSI BERADA DALAM KONDISI STABIL & TERUJI.
+================================================================================
+
+
+
+

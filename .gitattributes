@@ -1,0 +1,12 @@
+# Git Attributes for SiMover Repository
+
+# Ensure line endings in text files are normalized
+* text=auto
+
+# Preserve exact binary archive and SQL dump bytes without line ending conversion
+tools/ffmpeg/*.zip binary
+database/dumps/*.sql -text
+
+# Explicitly ensure Git LFS filter is not used on these files
+tools/ffmpeg/ffmpeg-windows.zip -filter -diff -merge
+database/dumps/monitoring_dishub.sql -filter -diff -merge
