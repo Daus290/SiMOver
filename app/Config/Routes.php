@@ -4,7 +4,7 @@ use CodeIgniter\Router\RouteCollection;
 
 /**
  * @var RouteCollection $routes
- * Rute Halaman Pengunjung Sistem Monitoring Over Dimension Dishub Banjarbaru
+ * Rute Portal Publik Sistem Monitoring Over Dimension Dishub Banjarbaru
  */
 $routes->get('/', 'Home::index');
 $routes->get('live-cctv', 'LiveCctv::index');
@@ -20,19 +20,10 @@ $routes->get('cctv-stream/(:segment)/(:segment)', 'CctvProxy::stream/$1/$2');
 $routes->get('cctv-snapshot/(:segment)', 'CctvProxy::snapshot/$1');
 
 /**
- * Rute Area Admin (Tahap 5)
+ * Rute Kompatibilitas Bookmark Admin Legacy (Dialihkan ke Portal Publik Baru /dashboard)
+ * Tidak ada form login, logout, atau ubah password aktif.
  */
-$routes->group('admin', static function ($routes) {
-    // Pintu masuk & Autentikasi Demo
-    $routes->get('', 'Admin\AuthController::index');
-    $routes->get('login', 'Admin\AuthController::login');
-    $routes->post('login', 'Admin\AuthController::doLogin', ['filter' => 'csrf']);
-
-    // Halaman & Aksi yang Dilindungi Sesi Admin
-    $routes->group('', ['filter' => 'adminAuth'], static function ($routes) {
-        $routes->get('dashboard', 'Admin\DashboardController::index');
-        $routes->get('hasil-deteksi', 'Admin\HasilDeteksiController::index');
-        $routes->post('logout', 'Admin\AuthController::logout', ['filter' => 'csrf']);
-        $routes->post('ubah-kata-sandi', 'Admin\AuthController::changePassword', ['filter' => 'csrf']);
-    });
-});
+$routes->get('admin', static fn() => redirect()->to(base_url('dashboard')));
+$routes->get('admin/login', static fn() => redirect()->to(base_url('dashboard')));
+$routes->get('admin/dashboard', static fn() => redirect()->to(base_url('dashboard')));
+$routes->get('admin/hasil-deteksi', static fn() => redirect()->to(base_url('dashboard?tab=hasil-deteksi')));

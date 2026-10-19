@@ -973,6 +973,53 @@ Status: SELESAI & TERVERIFIKASI PENUH (PUSH SUKSES KE ORIGIN MAIN)
    - Jangan pernah mengekspos IP, port, atau kredensial RTSP NVR ke dalam view/HTML sisi klien.
    - Semua tayangan harus melalui reverse proxy `CctvProxy.php` (`/cctv-stream/...` dan `/cctv-snapshot/...`).
 
+--------------------------------------------------------------------------------
+13. LAPORAN PENGERJAAN PROMPT 51 (PORTAL PUBLIK TANPA ADMIN, DASHBOARD DUA TAB & DROPDOWN PERIODE)
+--------------------------------------------------------------------------------
+Tanggal Selesai: 19 Oktober 2026
+Status: SELESAI & TERVERIFIKASI PENUH
+
+1. PORTAL PUBLIK SIMOVER TANPA ADMIN:
+   - Menjadikan portal pengunjung sebagai satu-satunya antarmuka utama SiMover.
+   - Halaman admin, login, logout, dan ubah password dinonaktifkan dari antarmuka aktif.
+   - Semua pengunjung dapat langsung mengakses /dashboard untuk melihat analitik dan hasil deteksi.
+   - Seluruh 6 rute publik tetap dipertahankan: Beranda (/), Live CCTV (/live-cctv), Dashboard (/dashboard), Peta Interaktif (/peta-cctv), Tentang Dishub (/tentang-dishub), dan Tentang Over Dimension (/tentang-over-dimension).
+
+2. DASHBOARD DUA TAB & SATU DROPDOWN PERIODE:
+   - Satu Dropdown Periode di area header dengan pilihan tepat: 1 Hari, 7 Hari, 30 Hari (Default: 1 Hari).
+   - Dropdown berlaku bersama untuk seluruh angka ringkasan, persentase, 3 insight, grafik, dan tabel hasil deteksi.
+   - Dua Tab Bersebelahan: "Statistik" (default) dan "Hasil Deteksi". Hanya isi tab aktif yang ditampilkan.
+   - Tab Statistik:
+     * 5 Kartu Statistik: CCTV Terpantau saat ini (16/17 online/offline), Total Deteksi, Over Dimension, Normal, Truk Kontainer.
+     * 3 Kartu Insight: Hari OD Terbanyak, Jam OD Terbanyak, dan Titik CCTV OD Terbanyak (dihitung dinamis dari dataset periode).
+     * Distribusi Hasil Deteksi (progress bar persentase).
+     * Dua Grafik Chart.js: Line Chart (tren) dan Stacked Bar Chart (volume) per jam (1 Hari) atau per tanggal (7/30 Hari).
+   - Tab Hasil Deteksi:
+     * Memindahkan tabel deteksi admin lama ke partial publik.
+     * 5 Kolom: ID Deteksi, Waktu (WITA) [tanggal baris utama, jam baris kedua], Titik CCTV, Jenis Kendaraan, Hasil Deteksi.
+     * Label Hasil Deteksi text-only tanpa ikon (Normal, Kontainer, Over Dimension) via partial bersama `app/Views/partials/detection_badge.php`.
+     * Filter: Titik CCTV, Jenis Kendaraan, Hasil Deteksi, tombol Terapkan, tombol Reset.
+     * Indikator data terfilter dan paginasi ringkas 10 record per halaman.
+
+3. DATASET KANONIK DETERMINISTIK 3 PERIODE (DummyDataService.php):
+   - Anchor: 25 September 2026 pukul 15.42 WITA (Asia/Makassar).
+   - 1 Hari: 128 record (83 Normal, 27 Kontainer, 18 Over Dimension).
+   - 7 Hari: 848 record (558 Normal, 175 Kontainer, 115 Over Dimension).
+   - 30 Hari: 3.667 record (2.424 Normal, 753 Kontainer, 490 Over Dimension).
+   - Konsistensi matematika 100%: Total = Normal + Kontainer + Over Dimension.
+   - Subset deterministik: Record 1 Hari adalah subset identik dari 7 Hari, dan 7 Hari adalah subset identik dari 30 Hari.
+
+4. DECOMMISSION ALUR ADMIN:
+   - GET /admin, /admin/login, /admin/dashboard dialihkan (302) ke /dashboard.
+   - GET /admin/hasil-deteksi dialihkan (302) ke /dashboard?tab=hasil-deteksi.
+   - Seluruh rute POST login/logout/ubah-password dinonaktifkan (404 Not Found).
+   - File khusus admin (controller, views, filter, css, js) dibersihkan aman.
+   - Model `AdminUserModel.php`, riwayat migration, dan database table `admin_users` di MySQL tetap utuh.
+
+5. STATUS INTEGRASI AI:
+   - Integrasi deteksi AI nyata tetap menjadi pekerjaan teman pengguna.
+   - Sistem saat ini menggunakan fixture contoh kanonik deterministik yang siap disubstitusi data AI nyata via kontrak data yang telah dibakukan.
+
 ================================================================================
 DOKUMEN INI SIAP DISALIN KE SESI CHAT BARU ANTIGRAVITY.
 SELURUH SISTEM, FILE, DAN DEPENDENSI BERADA DALAM KONDISI STABIL & TERUJI.

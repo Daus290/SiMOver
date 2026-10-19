@@ -262,7 +262,18 @@ L. PROMPT 31 - PENERAPAN PROFIL STREAM SESUAI KE SELURUH CCTV BANJARBARU (12 OKT
    - Dump Database: `database/dumps/monitoring_dishub.sql` disertakan lengkap dengan data akun admin dan hash password bcrypt sesuai otorisasi pengguna. Berkas sumber Downloads tetap utuh.
    - Keamanan: `.env`, cache HLS, dan session terlindungi di luar Git.
 
-13. ATURAN KERAS & KONVENSI PROYEK (WAJIB DIPATUHI SESI BARU)
+13. CAPAIAN PROMPT 51 (PORTAL PUBLIK TANPA ADMIN, DASHBOARD DUA TAB & DROPDOWN PERIODE)
+--------------------------------------------------------------------------------
+   - Portal Publik Satu-Satunya: Tidak ada halaman admin, form login, logout, atau ubah password aktif.
+   - Halaman /dashboard terbuka publik untuk statistik dan hasil deteksi kendaraan.
+   - Satu Dropdown Periode (1 Hari, 7 Hari, 30 Hari) di area header yang mengatur seluruh metrik, grafik, dan tabel deteksi bersama.
+   - Dua Tab Bersebelahan: "Statistik" (default, memuat 5 kartu statistik, 3 kartu insight dinamis, distribusi, dan 2 grafik Chart.js) dan "Hasil Deteksi" (memuat filter Titik CCTV/Jenis Kendaraan/Hasil Deteksi, tombol Terapkan/Reset, tabel 5 kolom dengan text-only badge, dan paginasi ringkas 10 record).
+   - Dataset Kanonik 3 Periode (DummyDataService.php): 1 Hari (128 record), 7 Hari (848 record), 30 Hari (3.667 record) dengan konsistensi matematika 100% dan sifat subset deterministik.
+   - Decommission Admin: Rute GET /admin, /admin/login, /admin/dashboard dialihkan (302) ke /dashboard, GET /admin/hasil-deteksi dialihkan (302) ke /dashboard?tab=hasil-deteksi. Aksi POST login/password dinonaktifkan (404). File controller/views/filter/css/js admin dibersihkan.
+   - Database: Tabel `admin_users` di MySQL dan riwayat migrations tetap utuh untuk menjaga riwayat.
+   - Integrasi AI: Tetap dikerjakan teman pengguna; sistem web siap menampung data nyata via kontrak data baku.
+
+14. ATURAN KERAS & KONVENSI PROYEK (WAJIB DIPATUHI SESI BARU)
 --------------------------------------------------------------------------------
 1. JANGAN PERNAH MENGUBAH / MENCOBA EKSPERIMEN BUFFERING LAG CCTV LAGI:
    Pengguna menerima jeda wajar browser (~5-10 detik) dibandingkan Vivotek NVR asli.
@@ -276,7 +287,7 @@ L. PROMPT 31 - PENERAPAN PROFIL STREAM SESUAI KE SELURUH CCTV BANJARBARU (12 OKT
    FFmpeg selalu dipanggil dari path portabel proyek: `writable\bin\ffmpeg.exe`.
    Untuk clone baru, jalankan `tools/ffmpeg/Restore-FFmpeg.ps1`.
 5. STYLING & DESAIN:
-   Gunakan Bootstrap 5.3 + Vanilla CSS di `style.css`. Jangan pernah memakai TailwindCSS.
+   Gunakan Bootstrap 5.3 + Vanilla CSS di `style.css` dan file modular `pages/`. Jangan pernah memakai TailwindCSS.
    Tipografi publik wajib 'Source Sans 3'.
 6. KEAMANAN & PRIVASI:
    Jangan mengekspos IP, port, atau kredensial NVR ke dalam HTML/view. Selalu gunakan reverse proxy `CctvProxy.php`.
