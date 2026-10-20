@@ -118,6 +118,7 @@
   function destroyPlayer() {
     isDestroyed = true;
     stopWatchdog();
+    stopOverlayPolling();
     if (hlsInstance) {
       try {
         hlsInstance.stopLoad();
@@ -160,6 +161,7 @@
   function startPlayer() {
     isDestroyed = false;
     startWatchdog();
+    startOverlayPolling();
     hideOverlays();
     if (loadingOverlay) loadingOverlay.classList.remove('d-none');
     setPlayerState('connecting');
@@ -279,6 +281,186 @@
   if (btnClosePlayer) {
     btnClosePlayer.addEventListener('click', destroyPlayer);
   }
+
+  // =========================================================================
+  // MODUL KOTAK DETEKSI (OVERLAY CANVAS & TOGGLE) - HANYA KAMERA UJI ATCS-TEST
+  // Kotak hanya digambar bila server menyatakan sumber koordinat resmi tersedia,
+  // metadata segar, dan waktu frame cocok dengan posisi video (hls.playingDate).
+  // Toggle hanya visual: tidak memengaruhi deteksi, penghitungan, atau data.
+  // =========================================================================
+  const isAiTest = video.getAttribute('data-is-ai-test') === 'true';
+  const overlayCanvas = document.getElementById('aiOverlayCanvas');
+  const btnToggleAiOverlay = document.getElementById('btnToggleAiOverlay');
+  const textToggleOverlay = document.getElementById('textToggleOverlay');
+  const iconToggleOverlay = document.getElementById('iconToggleOverlay');
+  const overlayStatusText = document.getElementById('aiOverlayStatusText');
+
+  const OVERLAY_SYNC_TOLERANCE_MS = 500;
+  const OVERLAY_POLL_ACTIVE_MS = 250;
+  const OVERLAY_POLL_IDLE_MS = 5000;
+
+  let overlayPollTimer = null;
+  let overlayAvailable = false;
+  let overlayEnabled = true; // pilihan pengguna selama halaman terbuka (default ON)
+  let lastOverlay = null;
+
+  function clearOverlay() {
+    if (!overlayCanvas) return;
+    const ctx = overlayCanvas.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  }
+
+  function setOverlayStatus(text) {
+    if (overlayStatusText) overlayStatusText.textContent = text;
+  }
+
+  function updateToggleUI() {
+    if (!btnToggleAiOverlay) return;
+    btnToggleAiOverlay.disabled = !overlayAvailable;
+    btnToggleAiOverlay.setAttribute('aria-disabled', overlayAvailable ? 'false' : 'true');
+    btnToggleAiOverlay.setAttribute('aria-pressed', overlayAvailable && overlayEnabled ? 'true' : 'false');
+    btnToggleAiOverlay.classList.toggle('btn-outline-primary', overlayAvailable && overlayEnabled);
+    btnToggleAiOverlay.classList.toggle('btn-outline-secondary', !(overlayAvailable && overlayEnabled));
+
+    let stateHtml = '<strong class="text-secondary">Belum Tersedia</strong>';
+    if (overlayAvailable) {
+      stateHtml = overlayEnabled ? '<strong class="text-success">ON</strong>' : '<strong class="text-secondary">OFF</strong>';
+    }
+    if (textToggleOverlay) textToggleOverlay.innerHTML = 'Kotak Deteksi: ' + stateHtml;
+    if (iconToggleOverlay) iconToggleOverlay.className = 'bi bi-bounding-box ' + (overlayAvailable && overlayEnabled ? 'text-primary' : 'text-muted');
+    if (overlayCanvas) overlayCanvas.style.display = overlayAvailable && overlayEnabled ? 'block' : 'none';
+  }
+
+  if (isAiTest && btnToggleAiOverlay) {
+    updateToggleUI();
+    btnToggleAiOverlay.addEventListener('click', function () {
+      if (!overlayAvailable) return;
+      overlayEnabled = !overlayEnabled;
+      updateToggleUI();
+      if (!overlayEnabled) clearOverlay();
+    });
+  }
+
+  function startOverlayPolling() {
+    if (!isAiTest || !overlayCanvas) return;
+    stopOverlayPolling();
+
+    async function poll() {
+      if (isDestroyed) return;
+      let nextDelay = OVERLAY_POLL_IDLE_MS;
+
+      try {
+        const resp = await fetch(window.location.origin + '/api/ai/overlay', { cache: 'no-store' });
+        const data = resp.ok ? await resp.json() : null;
+        if (data && data.available && data.camera_code === video.getAttribute('data-camera-code')) {
+          overlayAvailable = true;
+          lastOverlay = data;
+          nextDelay = OVERLAY_POLL_ACTIVE_MS;
+          renderOverlay();
+        } else {
+          overlayAvailable = false;
+          lastOverlay = null;
+          clearOverlay();
+          setOverlayStatus(data && data.reason ? data.reason : 'Kotak deteksi belum tersedia.');
+        }
+      } catch (err) {
+        overlayAvailable = false;
+        lastOverlay = null;
+        clearOverlay();
+        setOverlayStatus('Status kotak deteksi tidak dapat dibaca.');
+      }
+
+      updateToggleUI();
+      if (!isDestroyed) overlayPollTimer = setTimeout(poll, nextDelay);
+    }
+
+    poll();
+  }
+
+  function stopOverlayPolling() {
+    if (overlayPollTimer) {
+      clearTimeout(overlayPollTimer);
+      overlayPollTimer = null;
+    }
+    lastOverlay = null;
+    clearOverlay();
+  }
+
+  // Area gambar video sebenarnya di dalam elemen (object-fit: contain / letterbox)
+  function videoContentRect() {
+    const rect = video.getBoundingClientRect();
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh || rect.width <= 0 || rect.height <= 0) return null;
+    const scale = Math.min(rect.width / vw, rect.height / vh);
+    const w = vw * scale;
+    const h = vh * scale;
+    return { width: rect.width, height: rect.height, x: (rect.width - w) / 2, y: (rect.height - h) / 2, w: w, h: h };
+  }
+
+  function renderOverlay() {
+    const data = lastOverlay;
+    if (!overlayCanvas || !data || !overlayEnabled || video.paused || video.seeking) {
+      clearOverlay();
+      return;
+    }
+
+    // Sinkronisasi: waktu frame metadata harus cocok dengan waktu program video yang diputar
+    const playingDate = hlsInstance && hlsInstance.playingDate ? hlsInstance.playingDate.getTime() : NaN;
+    const frameTime = Date.parse(data.frame_time);
+    if (isNaN(playingDate) || isNaN(frameTime) || Math.abs(playingDate - frameTime) > OVERLAY_SYNC_TOLERANCE_MS) {
+      clearOverlay();
+      setOverlayStatus('Kotak disembunyikan: waktu frame tidak cocok dengan video yang diputar.');
+      return;
+    }
+
+    const area = videoContentRect();
+    if (!area) {
+      clearOverlay();
+      return;
+    }
+    if (overlayCanvas.width !== Math.round(area.width) || overlayCanvas.height !== Math.round(area.height)) {
+      overlayCanvas.width = Math.round(area.width);
+      overlayCanvas.height = Math.round(area.height);
+    }
+
+    const ctx = overlayCanvas.getContext('2d');
+    ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    const sx = area.w / data.frame_width;
+    const sy = area.h / data.frame_height;
+
+    (Array.isArray(data.boxes) ? data.boxes : []).forEach(function (box) {
+      const bx = area.x + box.x1 * sx;
+      const by = area.y + box.y1 * sy;
+      const bw = (box.x2 - box.x1) * sx;
+      const bh = (box.y2 - box.y1) * sy;
+      const isOd = box.is_over_dimension === true;
+      const labelText = String(box.label || 'Belum terklasifikasi').slice(0, 60);
+
+      ctx.save();
+      ctx.strokeStyle = isOd ? '#ef4444' : '#10b981';
+      ctx.lineWidth = isOd ? 3 : 2;
+      ctx.strokeRect(bx, by, bw, bh);
+
+      ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
+      const textW = ctx.measureText(labelText).width + 12;
+      const labelY = Math.max(0, by - 20);
+      ctx.fillStyle = isOd ? '#dc2626' : 'rgba(15, 23, 42, 0.85)';
+      ctx.fillRect(bx, labelY, textW, 20);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(labelText, bx + 6, labelY + 14);
+      ctx.restore();
+    });
+
+    setOverlayStatus('Kotak dari ' + (data.origin || 'sumber resmi') + ' (selisih waktu ' + Math.round(Math.abs(playingDate - frameTime)) + ' ms)');
+  }
+
+  ['seeking', 'pause', 'emptied'].forEach(function (evt) {
+    video.addEventListener(evt, clearOverlay);
+  });
+  window.addEventListener('resize', function () {
+    if (lastOverlay) renderOverlay();
+  });
 
   window.addEventListener('beforeunload', destroyPlayer);
   window.addEventListener('pagehide', destroyPlayer);

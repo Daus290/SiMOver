@@ -1029,3 +1029,37 @@ SELURUH SISTEM, FILE, DAN DEPENDENSI BERADA DALAM KONDISI STABIL & TERUJI.
 
 
 
+
+================================================================================
+PROMPT 53 (20 OKTOBER 2026) - INTEGRASI WEB UNTUK CORE RIZKIYA (CLAUDE CODE)
+================================================================================
+Batas: core deteksi milik Rizkiya TIDAK diubah. Pekerjaan hanya integrasi web.
+Rincian lengkap: docs/INTEGRASI_AI_CORE_RIZKIYA.md
+
+1. CORE RIZKIYA
+   - Salinan identik di app/ThirdParty/RizkiyaCore/file-rizkiya.txt
+     (SHA256 3DE8C054...6F6348, sama dengan file asli di Downloads).
+   - Dijalankan apa adanya di iframe host /ai-core/rizkiya-host dari panel
+     "Core Rizkiya - Uji di Browser" pada /live-cctv?cctv=ATCS-TEST.
+   - Hasil uji browser: model termuat, video berjalan, tetapi setiap inferensi gagal
+     "Got: 224 Expected: 320". Core belum menghasilkan keluaran valid.
+   - Daftar temuan & permintaan ke Rizkiya ada di dokumen integrasi bagian 3.
+
+2. INTEGRASI WEB
+   - Asal data (data_origin) dipisah: rizkiya_core, antigravity_worker_p52, test_fixture.
+   - API ingestion: token dari .env tanpa fallback, gagal tertutup, validasi kelas/kamera/
+     confidence/waktu/ukuran, label & OD diturunkan server, respons per event, idempoten.
+   - Dashboard: dropdown Sumber (Core Rizkiya / Uji lama bukan core), 5 kelas konsisten di
+     kartu, grafik, insight dan tabel; status pengirim dari heartbeat aktual; polling satu
+     request aktif dan berhenti saat tab tersembunyi.
+   - Live CCTV: badge "Worker AI Aktif" hardcode diganti status aktual; toggle Kotak Deteksi
+     "Belum Tersedia" karena core tidak mengeluarkan kotak; overlay basi tidak pernah digambar.
+   - Beranda: ringkasan diberi label "Data Contoh".
+   - Worker ai_worker/ (Antigravity) dibekukan, bukan core; token dari .env, PID diverifikasi.
+   - Migration baru 2026-10-20-080000_AddDataOriginToAiTables.
+   - Tes: vendor\bin\phpunit -c phpunit.ai.xml (database terpisah monitoring_dishub_test).
+
+3. INSIDEN DATA
+   - 20 Okt 08:15 WITA, 214 baris data uji Antigravity terhapus dari database utama akibat
+     rollback migration yang salah sasaran saat menyiapkan database test. Tidak ada backup.
+   - Rekonstruksi parsial 208 baris dari worker.log: writable/ai_legacy_recovery/ (tidak diimpor).

@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Libraries\DummyDataService;
 use App\Libraries\AtcsCctvService;
 use App\Libraries\DishubCameraLocationService;
+use App\Models\AiWorkerStatusModel;
 
 class LiveCctv extends BaseController
 {
@@ -57,11 +58,28 @@ class LiveCctv extends BaseController
             'bjb_intersections'  => $this->dishubLocationService->getIntersections(),
             'bjb_summary'        => $this->dishubLocationService->getSummaryCounts(),
             'atcs_cameras'       => $this->atcsService->getCctvList(),
+            'ai_test_camera'     => $this->atcsService->getAiTestCamera(),
+            'ai_core_status'     => $this->getAiCoreStatus(),
             'selected_cctv'      => $selectedCctv,
             'selected_code'      => $selectedCctv ? $selectedCctv['code'] : null,
             'invalid_param'      => $invalidParam,
         ];
 
         return view('pages/live_cctv', $data);
+    }
+
+    /**
+     * Status pengirim tepercaya core Rizkiya dari heartbeat aktual.
+     * Bila database tidak tersedia, halaman CCTV tetap tampil dengan status tidak diketahui.
+     */
+    protected function getAiCoreStatus(): array
+    {
+        try {
+            return (new AiWorkerStatusModel())->getSourceStatus('rizkiya_core');
+        } catch (\Throwable $e) {
+            log_message('warning', 'Status AI tidak dapat dibaca: ' . $e->getMessage());
+
+            return ['state' => 'tidak_diketahui', 'label' => 'Status tidak dapat dibaca', 'is_live' => false];
+        }
     }
 }

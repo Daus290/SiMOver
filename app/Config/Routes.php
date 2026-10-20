@@ -27,3 +27,18 @@ $routes->get('admin', static fn() => redirect()->to(base_url('dashboard')));
 $routes->get('admin/login', static fn() => redirect()->to(base_url('dashboard')));
 $routes->get('admin/dashboard', static fn() => redirect()->to(base_url('dashboard')));
 $routes->get('admin/hasil-deteksi', static fn() => redirect()->to(base_url('dashboard?tab=hasil-deteksi')));
+
+/**
+ * Rute API Integrasi AI Model & Dashboard Data Real-Time
+ */
+// Host terisolasi core Rizkiya (iframe pada player ATCS-TEST, isi core tidak diubah)
+$routes->get('ai-core/rizkiya-host', 'RizkiyaCoreHost::index');
+
+$routes->group('api/ai', static function ($routes) {
+    $routes->post('detections', 'Api\AiApiController::postDetection');
+    $routes->post('heartbeat', 'Api\AiApiController::postHeartbeat');
+    $routes->post('overlay', 'Api\AiApiController::postOverlay');
+    $routes->get('overlay', 'Api\AiApiController::getOverlay');
+    $routes->get('status', 'Api\AiApiController::getStatus');
+    $routes->get('dashboard-data', 'Api\AiApiController::getDashboardData');
+});

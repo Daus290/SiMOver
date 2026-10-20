@@ -1,0 +1,19 @@
+{
+  "classes": [
+    "truck_box",
+    "truck_container",
+    "truck_over_dimension",
+    "truck_tangki",
+    "truck_tidak_over"
+  ],
+  "labels_id": {
+    "truck_box": "Truk Box",
+    "truck_container": "Truk Kontainer",
+    "truck_over_dimension": "Truk Over Dimension",
+    "truck_tangki": "Truk Tangki",
+    "truck_tidak_over": "Truk Bak Terbuka Normal"
+  },
+  "img_size": 320,
+  "use_letterbox": true,
+  "detector_model": "yolov8m.pt"
+}

@@ -30,6 +30,10 @@
 <!-- 2. Kartu Statistik Modern (Ikon, Accent Stripe, Hover Halus) -->
 <section class="py-4">
   <div class="container">
+    <p class="text-muted small mb-2">
+      <span class="badge bg-secondary-subtle text-dark border me-1">Data Contoh</span>
+      Angka ringkasan di bawah adalah data contoh tampilan, bukan hasil AI. Hasil model pada kamera uji tersedia di halaman Dashboard.
+    </p>
     <div class="row g-3">
       <!-- CCTV Aktif -->
       <div class="col-xl-3 col-sm-6">

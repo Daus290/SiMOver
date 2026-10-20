@@ -56,7 +56,12 @@
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <span class="badge bg-dark"><?= esc($selected_cctv['code']) ?></span>
               <span class="fw-bold text-dark"><?= esc($selected_cctv['name']) ?></span>
-              <?php if ($isVivotek): ?>
+              <?php if (!empty($selected_cctv['is_ai_test'])): ?>
+                <span class="text-muted small">&bull; ATCS Banjarmasin</span>
+                <span class="badge bg-warning-subtle text-dark border"><i class="bi bi-cpu me-1"></i>Kamera Uji AI</span>
+                <span class="badge bg-primary-subtle text-primary border">Model: best_yolo_cls.onnx (5 kelas)</span>
+                <span class="badge bg-secondary-subtle text-dark border">1280x720 (HD)</span>
+              <?php elseif ($isVivotek): ?>
                 <span class="text-muted small">&bull; <?= esc($selected_cctv['intersection_name'] ?? 'Dishub Kota Banjarbaru') ?></span>
                 <span class="badge bg-primary-subtle text-primary border">Vivotek Banjarbaru</span>
                 <span class="badge bg-secondary-subtle text-dark border">Jaringan Kantor</span>
@@ -67,7 +72,21 @@
                 <span class="badge bg-primary-subtle text-primary border">ATCS Banjarmasin</span>
               <?php endif; ?>
             </div>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <?php if (!empty($selected_cctv['is_ai_test'])): ?>
+                <!-- Toggle hanya visual. Aktif hanya bila sumber resmi menyediakan kotak + waktu frame. -->
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 fw-semibold"
+                        id="btnToggleAiOverlay"
+                        aria-pressed="false"
+                        aria-disabled="true"
+                        disabled
+                        title="Kotak deteksi belum tersedia: core Rizkiya belum mengeluarkan koordinat dan waktu frame"
+                        style="font-size: 0.8rem; border-radius: 6px; padding: 4px 10px;">
+                  <i class="bi bi-bounding-box text-muted" id="iconToggleOverlay" aria-hidden="true"></i>
+                  <span id="textToggleOverlay">Kotak Deteksi: <strong class="text-secondary">Belum Tersedia</strong></span>
+                </button>
+              <?php endif; ?>
               <button type="button" class="btn btn-warning btn-sm d-none fw-semibold" id="btnToolbarPlay" style="font-size: 0.8rem;">
                 <i class="bi bi-play-fill me-1" aria-hidden="true"></i>Putar Tayangan
               </button>
@@ -78,7 +97,7 @@
           </div>
 
           <!-- Layar Player (HLS Video Element) -->
-          <div class="player-screen" id="playerScreenContainer">
+          <div class="player-screen" id="playerScreenContainer" style="position: relative;">
             <video id="cctvVideoPlayer" 
                    class="cctv-video-player" 
                    playsinline 
@@ -90,8 +109,16 @@
                    data-camera-code="<?= esc($selected_cctv['code']) ?>"
                    data-camera-name="<?= esc($selected_cctv['name']) ?>"
                    data-resolution="<?= esc($selected_cctv['resolution'] ?? '') ?>"
-                   data-is-vivotek="<?= $isVivotek ? 'true' : 'false' ?>">
+                   data-is-vivotek="<?= $isVivotek ? 'true' : 'false' ?>"
+                   data-is-ai-test="<?= !empty($selected_cctv['is_ai_test']) ? 'true' : 'false' ?>">
             </video>
+
+            <!-- Canvas Overlay untuk Kotak Deteksi AI -->
+            <canvas id="aiOverlayCanvas" 
+                    class="ai-overlay-canvas" 
+                    aria-hidden="true"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; display: none;">
+            </canvas>
 
             <!-- Floating Bar Top Atas Video -->
             <div class="player-bar-top">
@@ -151,6 +178,9 @@
                 <span><i class="bi bi-clock-history me-1"></i>Waktu tayang: <strong id="videoDurationText" class="text-dark">00:00</strong></span>
                 <span><i class="bi bi-aspect-ratio me-1"></i>Resolusi: <strong class="text-dark" id="playerResolutionText"><?= esc($selected_cctv['resolution'] ?? '') ?></strong></span>
                 <span><i class="bi bi-shield-check text-success me-1"></i>Relay HLS: <span class="badge bg-success-subtle text-success border">Lokal Aman</span></span>
+                <?php if (!empty($selected_cctv['is_ai_test'])): ?>
+                  <span><i class="bi bi-bounding-box me-1"></i>Overlay: <strong class="text-dark" id="aiOverlayStatusText">Memeriksa sumber kotak...</strong></span>
+                <?php endif; ?>
               </div>
               <div>
                 <?php if ($isVivotek): ?>
@@ -162,6 +192,47 @@
             </div>
           </div>
         </div>
+
+        <?php if (!empty($selected_cctv['is_ai_test'])): ?>
+          <!-- Core Rizkiya: dijalankan apa adanya di iframe host terisolasi, hanya setelah diminta -->
+          <div class="card-plain p-3 mt-3" id="rizkiyaCorePanel" data-host-url="<?= base_url('ai-core/rizkiya-host') ?>">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-2">
+              <div>
+                <h2 class="h6 fw-bold text-dark mb-1"><i class="bi bi-cpu text-primary me-2" aria-hidden="true"></i>Core Rizkiya &ndash; Uji di Browser</h2>
+                <p class="text-muted small mb-0">
+                  Kode deteksi milik Rizkiya dijalankan tanpa perubahan di browser ini. Model (&plusmn;63 MB) diunduh dari Hugging Face saat dijalankan.
+                  Proses berhenti bila halaman ditutup, dan hasilnya <strong>tidak disimpan</strong> ke database karena browser publik bukan pengirim tepercaya.
+                </p>
+              </div>
+              <button type="button" class="btn-dishub-primary btn-sm text-nowrap" id="btnRunRizkiyaCore" aria-pressed="false">
+                <i class="bi bi-play-circle me-1" aria-hidden="true"></i><span>Jalankan Core</span>
+              </button>
+            </div>
+
+            <dl class="row small mb-0 mt-2" aria-live="polite">
+              <dt class="col-sm-4 col-lg-3 text-muted fw-normal">Salinan core</dt>
+              <dd class="col-sm-8 col-lg-9 mb-1" id="rzHost">Belum dijalankan</dd>
+              <dt class="col-sm-4 col-lg-3 text-muted fw-normal">Video pada core</dt>
+              <dd class="col-sm-8 col-lg-9 mb-1" id="rzVideo">-</dd>
+              <dt class="col-sm-4 col-lg-3 text-muted fw-normal">Model</dt>
+              <dd class="col-sm-8 col-lg-9 mb-1" id="rzModel">-</dd>
+              <dt class="col-sm-4 col-lg-3 text-muted fw-normal">Inferensi</dt>
+              <dd class="col-sm-8 col-lg-9 mb-1" id="rzInference">-</dd>
+              <dt class="col-sm-4 col-lg-3 text-muted fw-normal">Keluaran terakhir core</dt>
+              <dd class="col-sm-8 col-lg-9 mb-1" id="rzResult">-</dd>
+              <dt class="col-sm-4 col-lg-3 text-muted fw-normal">Diterima adapter</dt>
+              <dd class="col-sm-8 col-lg-9 mb-1" id="rzResultTime">-</dd>
+            </dl>
+            <p class="text-muted mb-0 mt-2" style="font-size: 0.75rem;">
+              Keluaran yang dapat diamati dari core hanya teks status dan teks hasil (label + persen). Core belum menyediakan indeks kelas,
+              kotak deteksi, ID kendaraan maupun waktu frame.
+            </p>
+
+            <div class="mt-3 d-none" id="rizkiyaCoreFrameWrap">
+              <iframe id="rizkiyaCoreFrame" title="Host Core Rizkiya" style="width: 100%; max-width: 680px; height: 600px; border: 1px solid var(--bs-border-color); border-radius: 6px;"></iframe>
+            </div>
+          </div>
+        <?php endif; ?>
 
       <?php else: ?>
         <!-- B. PANEL DETAIL KAMERA DISHUB BANJARBARU (PLACEHOLDER RESMI TANPA STREAM KOSONG) -->
@@ -335,7 +406,69 @@
       </div>
     </div>
 
-    <!-- Bagian ATCS Dihapus Sesuai Mandat, karena Vivotek sudah berhasil live -->
+    <!-- =======================================================================
+         3. BAGIAN KHUSUS: PENGUJIAN MODEL AI - SATU KAMERA ATCS BANJARMASIN
+         ======================================================================= -->
+    <?php if (!empty($ai_test_camera)): ?>
+      <div class="mt-5 pt-4 border-top" id="sectionAiTestCamera">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <h2 class="h5 fw-bold mb-0">Pengujian AI - ATCS Banjarmasin</h2>
+              <span class="badge bg-warning-subtle text-dark border" style="font-size: 0.75rem;">
+                1 Titik Pengujian (best_yolo_cls.onnx)
+              </span>
+            </div>
+            <p class="text-muted small mb-0 mt-1">
+              Kamera publik ATCS Kota Banjarmasin khusus pengujian integrasi model klasifikasi truk milik Rizkiya
+            </p>
+          </div>
+          <div>
+            <?php $coreLive = !empty($ai_core_status['is_live']); ?>
+            <span class="badge <?= $coreLive ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-dark' ?> border px-2 py-1 small"
+                  title="Berdasarkan heartbeat pengirim tepercaya core Rizkiya">
+              <i class="bi bi-activity me-1" aria-hidden="true"></i>Pengirim core: <?= esc($ai_core_status['label'] ?? 'Belum terhubung') ?>
+            </span>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-xl-4 col-lg-5 col-md-6">
+            <?= view('partials/cctv_card', [
+              'cctv'                  => $ai_test_camera,
+              'col_class'             => 'col-12',
+              'hide_redundant_badges' => false,
+              'show_favorite'         => false,
+            ]) ?>
+          </div>
+          <div class="col-xl-8 col-lg-7 col-md-6">
+            <div class="card-plain p-3 h-100 d-flex flex-column justify-content-center">
+              <h6 class="fw-bold text-dark mb-2">
+                <i class="bi bi-cpu text-primary me-2"></i>Tentang Pengujian Integrasi Model AI
+              </h6>
+              <p class="text-muted small mb-2">
+                Titik ini diarahkan ke <strong>Jl. Gubernur Soebardjo (Jembatan Tatah Bangkal Masuk Kota)</strong> yang merupakan jalur lintasan angkutan barang.
+                Pengujian memakai core deteksi milik Rizkiya dengan model klasifikasi 5 kelas (<code class="text-primary">best_yolo_cls.onnx</code>).
+              </p>
+              <ul class="text-muted small mb-3 ps-3">
+                <li><strong>5 Kelas Model:</strong> Truk Box, Truk Kontainer, Truk Over Dimension, Truk Tangki, Truk Bak Terbuka Normal.</li>
+                <li><strong>Core di browser:</strong> core dapat dijalankan dari halaman tayangan. Proses berhenti bila halaman ditutup dan hasilnya belum disimpan.</li>
+                <li><strong>Kotak Deteksi:</strong> belum tersedia karena core belum mengeluarkan koordinat kendaraan dan waktu frame.</li>
+                <li><strong>Hasil model</strong> adalah prediksi/indikasi visual, bukan pengukuran dimensi atau pelanggaran yang diverifikasi petugas.</li>
+              </ul>
+              <div class="d-flex flex-wrap gap-2">
+                <a href="<?= base_url('live-cctv?cctv=' . esc($ai_test_camera['code'])) ?>" class="btn-dishub-primary btn-sm">
+                  <i class="bi bi-play-circle me-1"></i>Buka Tayangan Kamera Uji
+                </a>
+                <a href="<?= base_url('dashboard') ?>" class="btn-dishub-light btn-sm">
+                  <i class="bi bi-bar-chart-line me-1"></i>Lihat Dashboard
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <?php endif; ?>
 
   </div>
 </div>
@@ -347,5 +480,8 @@
   <!-- Script Pemutar HLS untuk Kamera Terpilih (ATCS Banjarmasin / Vivotek Brimob) -->
   <script src="<?= base_url('assets/vendor/hls/hls.min.js') ?>"></script>
   <script src="<?= base_url('assets/js/pages/cctv-player.js') ?>"></script>
+  <?php if (!empty($selected_cctv['is_ai_test'])): ?>
+    <script src="<?= base_url('assets/js/pages/rizkiya-core-panel.js') ?>"></script>
+  <?php endif; ?>
 <?php endif; ?>
 <?= $this->endSection() ?>

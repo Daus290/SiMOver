@@ -128,6 +128,37 @@ class AtcsCctvService
     ];
 
     /**
+     * Kamera Khusus Pengujian AI Model Integrasi (1 Kamera ATCS Banjarmasin)
+     * Tidak menambah jumlah kamera Banjarbaru (tetap 18 titik / 17 terpasang).
+     */
+    protected array $aiTestCamera = [
+        'id'             => 'atcs-ai-test',
+        'code'           => 'ATCS-TEST',
+        'source_code'    => 'jalan_gubernur_soebardjo_jembatan_tatah_bangkal_masuk_kota',
+        'name'           => 'Jalan Gubernur Soebardjo Jembatan Tatah Bangkal Masuk Kota',
+        'short_name'     => 'Tatah Bangkal Masuk Kota',
+        'category'       => 'Pengujian AI (Model Teman)',
+        'location'       => 'Jl. Gubernur Soebardjo, Tatah Bangkal, Banjarmasin',
+        'city'           => 'Kota Banjarmasin',
+        'latitude'       => -3.372661,
+        'longitude'      => 114.587545,
+        'status'         => 'online',
+        'resolution'     => '1280x720 (HD)',
+        'description'    => 'Kamera uji coba integrasi model YOLOv8m-cls (5 kelas) untuk deteksi kendaraan niaga dan over dimension.',
+        'attribution'    => 'ATCS Dishub Kota Banjarmasin & Tim Peneliti',
+        'source_url'     => 'https://atcs.banjarmasinkota.go.id/',
+        'is_ai_test'     => true,
+    ];
+
+    /**
+     * Mengembalikan kamera uji coba integrasi model AI
+     */
+    public function getAiTestCamera(): array
+    {
+        return $this->enrichCameraData($this->aiTestCamera);
+    }
+
+    /**
      * Mengembalikan seluruh daftar kamera dengan URL stream dan snapshot yang sudah dipetakan
      * 
      * @return list<array<string, mixed>>
@@ -142,13 +173,22 @@ class AtcsCctvService
     }
 
     /**
-     * Cari kamera berdasarkan kode (misal ATCS-01), source_code, atau ID
+     * Cari kamera berdasarkan kode (misal ATCS-01, ATCS-TEST), source_code, atau ID
      */
     public function getCctvByCode(string $code): ?array
     {
         $normalized = strtolower(trim($code));
         if ($normalized === '') {
             return null;
+        }
+
+        // Cek kamera uji AI terlebih dahulu
+        if (
+            strtolower($this->aiTestCamera['code']) === $normalized ||
+            strtolower($this->aiTestCamera['id']) === $normalized ||
+            strtolower($this->aiTestCamera['source_code']) === $normalized
+        ) {
+            return $this->enrichCameraData($this->aiTestCamera);
         }
 
         foreach ($this->cameras as $sourceCode => $camera) {
@@ -165,11 +205,12 @@ class AtcsCctvService
     }
 
     /**
-     * Periksa apakah source_code terdaftar secara sah pada allowlist 6 kamera
+     * Periksa apakah source_code terdaftar secara sah pada allowlist
      */
     public function isValidSourceCode(string $sourceCode): bool
     {
-        return array_key_exists(trim($sourceCode), $this->cameras);
+        $code = trim($sourceCode);
+        return array_key_exists($code, $this->cameras) || ($code === $this->aiTestCamera['source_code']);
     }
 
     /**
@@ -201,6 +242,7 @@ class AtcsCctvService
         
         // Kompatibilitas dengan tampilan partial cctv_card (image_thumb)
         $camera['image_thumb']        = "cctv-snapshot/{$sourceCode}";
+        $camera['is_live_capable']    = true;
 
         return $camera;
     }

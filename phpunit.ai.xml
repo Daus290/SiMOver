@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Pengujian integrasi AI (Prompt 53).
+  Memakai database MySQL TERPISAH monitoring_dishub_test, bukan database utama.
+  Jalankan: vendor\bin\phpunit -c phpunit.ai.xml
+-->
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+    bootstrap="vendor/codeigniter4/framework/system/Test/bootstrap.php"
+    backupGlobals="false"
+    colors="true"
+    columns="max"
+    failOnRisky="true"
+    failOnWarning="true"
+    cacheDirectory="build/.phpunit.cache"
+>
+    <testsuites>
+        <testsuite name="AiIntegration">
+            <directory>./tests/ai</directory>
+        </testsuite>
+    </testsuites>
+
+    <php>
+        <server name="app.baseURL" value="http://localhost:8080/"/>
+        <server name="CODEIGNITER_SCREAM_DEPRECATIONS" value="0"/>
+        <const name="HOMEPATH" value="./"/>
+        <const name="CONFIGPATH" value="./app/Config/"/>
+        <const name="PUBLICPATH" value="./public/"/>
+        <env name="database.tests.hostname" value="127.0.0.1"/>
+        <env name="database.tests.database" value="monitoring_dishub_test"/>
+        <env name="database.tests.username" value="root"/>
+        <env name="database.tests.password" value=""/>
+        <env name="database.tests.DBDriver" value="MySQLi"/>
+        <env name="database.tests.DBPrefix" value=""/>
+        <env name="database.tests.port" value="3306"/>
+        <!-- Token pengirim fixture, hanya berlaku saat ENVIRONMENT=testing -->
+        <env name="AI_TEST_INGEST_TOKEN" value="fixture-token-hanya-untuk-phpunit"/>
+    </php>
+</phpunit>

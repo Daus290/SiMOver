@@ -143,3 +143,22 @@ _modules/*
 *.sql
 !/database/dumps/monitoring_dishub.sql
 
+#-------------------------
+# AI Worker & Python Environment
+#-------------------------
+.venv/
+.venv*/
+ai_worker/.venv/
+ai_worker/models/*.onnx
+ai_worker/models/*.pt
+ai_worker/*.pid
+ai_worker/*.log
+ai_worker/logs/
+ai_worker/cache/
+ai_worker/stop.flag
+/writable/ai_legacy_recovery/
+__pycache__/
+*.pyc
+*.pt
+
+
