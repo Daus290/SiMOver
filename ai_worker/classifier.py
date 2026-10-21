@@ -23,7 +23,7 @@ class VehicleClassifier:
         logger.info(f"Memuat model ONNX classifier dari: {self.model_path}")
         options = ort.SessionOptions()
         options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-        options.intra_op_num_threads = 4
+        options.intra_op_num_threads = 2
 
         # Menggunakan CPUExecutionProvider (stabil di semua lingkungan Windows)
         self.session = ort.InferenceSession(self.model_path, options, providers=["CPUExecutionProvider"])

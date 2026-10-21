@@ -125,14 +125,24 @@ class AiDetectionModel extends Model
         ];
     }
 
-    private function scoped(string $origin, array $range): BaseBuilder
+    private function scoped(string $origin, array $range, ?string $cameraSource = null): BaseBuilder
     {
         // Builder baru per query (Model::builder() memakai satu instance bersama)
-        return $this->db->table($this->table)
+        $builder = $this->db->table($this->table)
             ->where('data_origin', $origin)
-            ->where('camera_source', $this->ai->testCamera['source_code'])
             ->where('event_time >=', $range['start'])
             ->where('event_time <=', $range['end']);
+
+        if ($cameraSource !== null && $cameraSource !== 'all') {
+            $builder->where('camera_source', $cameraSource);
+        } else {
+            $allowedSources = array_keys($this->ai->testCameras);
+            if (!empty($allowedSources)) {
+                $builder->whereIn('camera_source', $allowedSources);
+            }
+        }
+
+        return $builder;
     }
 
     /**
@@ -319,11 +329,11 @@ class AiDetectionModel extends Model
     private function getCoverage(string $origin, array $range, bool $hourly): array
     {
         $db = $this->db;
-        $camera = $this->ai->testCamera['source_code'];
+        $allowedSources = array_keys($this->ai->testCameras);
 
         $ever = $db->table('ai_monitoring_coverage')
             ->where('data_origin', $origin)
-            ->where('camera_source', $camera)
+            ->whereIn('camera_source', $allowedSources)
             ->countAllResults();
         if ($ever === 0) {
             return ['known' => false, 'minutes' => []];
@@ -331,9 +341,9 @@ class AiDetectionModel extends Model
 
         $expr = $hourly ? 'HOUR(minute_start)' : 'DATE(minute_start)';
         $rows = $db->table('ai_monitoring_coverage')
-            ->select("{$expr} AS bucket, COUNT(*) AS minutes")
+            ->select("{$expr} AS bucket, COUNT(DISTINCT minute_start) AS minutes")
             ->where('data_origin', $origin)
-            ->where('camera_source', $camera)
+            ->whereIn('camera_source', $allowedSources)
             ->where('minute_start >=', $range['start'])
             ->where('minute_start <=', $range['end'])
             ->groupBy($expr)
@@ -357,8 +367,12 @@ class AiDetectionModel extends Model
     {
         $globalTotal = $this->scoped($origin, $range)->countAllResults();
 
-        $builder = $this->scoped($origin, $range);
+        $cameraFilter = $filters['camera'] ?? 'all';
+        $builder = $this->scoped($origin, $range, $cameraFilter);
         $hasFilter = false;
+        if ($cameraFilter !== 'all') {
+            $hasFilter = true;
+        }
         if ($filters['class'] !== 'all') {
             $builder->where('class_name', $filters['class']);
             $hasFilter = true;
@@ -372,12 +386,15 @@ class AiDetectionModel extends Model
         }
 
         $filteredTotal = (clone $builder)->countAllResults();
-        $totalPages = max(1, (int) ceil($filteredTotal / $perPage));
+        $maxPages = 20;
+        $maxResults = $maxPages * $perPage; // Maksimal 200 hasil (20 halaman x 10 baris)
+        $displayTotal = min($filteredTotal, $maxResults);
+        $totalPages = min($maxPages, max(1, (int) ceil($filteredTotal / $perPage)));
         $page = min(max(1, $page), $totalPages);
         $offset = ($page - 1) * $perPage;
 
         $rows = $builder
-            ->select('id, event_id, event_time, time_basis, received_time, camera_name, class_index, class_name, confidence, confidence_raw, track_id, bbox_x1, bbox_y1, bbox_x2, bbox_y2')
+            ->select('id, event_id, event_time, time_basis, received_time, camera_source, camera_name, class_index, class_name, confidence, confidence_raw, track_id, bbox_x1, bbox_y1, bbox_x2, bbox_y2')
             ->orderBy('event_time', 'DESC')
             ->orderBy('id', 'DESC')
             ->limit($perPage, $offset)
@@ -392,6 +409,7 @@ class AiDetectionModel extends Model
             $isOd = $class !== null && $this->ai->isOdClass($class['name']);
             $hasBbox = $r['bbox_x1'] !== null && $r['bbox_x2'] !== null;
             $hasImage = file_exists(FCPATH . 'uploads/detections/' . $r['event_id'] . '.jpg');
+            $camMeta = $this->ai->getCameraBySource($r['camera_source'] ?? '');
 
             $data[] = [
                 'id'             => 'DET-' . str_pad((string) $r['id'], 6, '0', STR_PAD_LEFT),
@@ -399,8 +417,9 @@ class AiDetectionModel extends Model
                 'date_formatted' => $dt->format('d M Y'),
                 'time'           => $dt->format('H:i:s') . ' WITA',
                 'time_basis'     => $this->timeBasisLabel($r['time_basis']),
-                'camera_name'    => $r['camera_name'],
-                'camera_code'    => $this->ai->testCamera['code'],
+                'camera_source'  => $r['camera_source'] ?? '',
+                'camera_name'    => $camMeta['name'] ?? ($r['camera_name'] ?: 'Kamera AI'),
+                'camera_code'    => $camMeta['code'] ?? 'ATCS',
                 'class_name'     => $r['class_name'],
                 'class_label'    => $class['label'] ?? $r['class_name'],
                 'confidence'     => number_format($confidence * 100, 1, ',', '.') . '%',
@@ -416,13 +435,15 @@ class AiDetectionModel extends Model
 
         return [
             'data'              => $data,
-            'total'             => $filteredTotal,
+            'total'             => $displayTotal,
+            'real_total'        => $filteredTotal,
+            'max_pages'         => $maxPages,
             'global_total'      => $globalTotal,
             'page'              => $page,
             'per_page'          => $perPage,
             'total_pages'       => $totalPages,
-            'from'              => $filteredTotal === 0 ? 0 : $offset + 1,
-            'to'                => min($offset + $perPage, $filteredTotal),
+            'from'              => $displayTotal === 0 ? 0 : $offset + 1,
+            'to'                => min($offset + $perPage, $displayTotal),
             'has_prev'          => $page > 1,
             'has_next'          => $page < $totalPages,
             'has_active_filter' => $hasFilter,
@@ -435,7 +456,7 @@ class AiDetectionModel extends Model
     public function getRecentDetections(string $origin, array $range, int $limit = 4): array
     {
         $rows = $this->scoped($origin, $range)
-            ->select('id, event_id, event_time, time_basis, camera_name, class_index, class_name, confidence, confidence_raw, track_id, bbox_x1, bbox_y1, bbox_x2, bbox_y2')
+            ->select('id, event_id, event_time, time_basis, camera_source, camera_name, class_index, class_name, confidence, confidence_raw, track_id, bbox_x1, bbox_y1, bbox_x2, bbox_y2')
             ->orderBy('event_time', 'DESC')
             ->orderBy('id', 'DESC')
             ->limit($limit)
@@ -450,6 +471,7 @@ class AiDetectionModel extends Model
             $isOd = $class !== null && $this->ai->isOdClass($class['name']);
             $hasBbox = $r['bbox_x1'] !== null && $r['bbox_x2'] !== null;
             $hasImage = file_exists(FCPATH . 'uploads/detections/' . $r['event_id'] . '.jpg');
+            $camMeta = $this->ai->getCameraBySource($r['camera_source'] ?? '');
 
             $data[] = [
                 'id'             => 'DET-' . str_pad((string) $r['id'], 6, '0', STR_PAD_LEFT),
@@ -457,8 +479,9 @@ class AiDetectionModel extends Model
                 'date_formatted' => $dt->format('d M Y'),
                 'time'           => $dt->format('H:i:s') . ' WITA',
                 'time_basis'     => $this->timeBasisLabel($r['time_basis']),
-                'camera_name'    => $r['camera_name'],
-                'camera_code'    => $this->ai->testCamera['code'],
+                'camera_source'  => $r['camera_source'] ?? '',
+                'camera_name'    => $camMeta['name'] ?? ($r['camera_name'] ?: 'Kamera AI'),
+                'camera_code'    => $camMeta['code'] ?? 'ATCS',
                 'class_name'     => $r['class_name'],
                 'class_label'    => $class['label'] ?? $r['class_name'],
                 'confidence'     => number_format($confidence * 100, 1, ',', '.') . '%',

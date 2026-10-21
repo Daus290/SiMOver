@@ -32,6 +32,9 @@ $buildPageUrl = static function (int $targetPage) use ($params) {
     if ($params['od'] !== 'all') {
         $query['od'] = $params['od'];
     }
+    if (!empty($params['camera']) && $params['camera'] !== 'all') {
+        $query['camera'] = $params['camera'];
+    }
 
     return base_url('dashboard') . '?' . http_build_query($query);
 };
@@ -81,7 +84,7 @@ $resetFilterUrl = base_url('dashboard') . '?' . http_build_query(['source' => $p
             <span class="badge bg-warning-subtle text-dark border">Bukan core Rizkiya</span>
           <?php endif; ?>
           <span class="fw-semibold text-dark"><?= esc($source['label']) ?></span>
-          <span class="text-muted">&bull; Kamera uji: <?= esc($dash['camera']['name']) ?></span>
+          <span class="text-muted">&bull; Kamera pantau: 2 Titik ATCS (Jl. Gubernur Soebardjo & Simpang Sultan Adam)</span>
         </div>
         <div class="d-flex align-items-center gap-2 small">
           <span class="text-muted">Status pengirim:</span>
@@ -173,59 +176,6 @@ $resetFilterUrl = base_url('dashboard') . '?' . http_build_query(['source' => $p
         <?php endforeach; ?>
       </div>
 
-      <!-- 3.2b Cuplikan Truk Terdeteksi (Kotak Visual AI) -->
-      <div class="card-plain mb-4">
-        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-          <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-bounding-box text-primary fs-5" aria-hidden="true"></i>
-            <h2 class="h5 fw-bold mb-0">Cuplikan Truk Terdeteksi Terakhir</h2>
-          </div>
-          <span class="badge bg-light text-muted border small">
-            <i class="bi bi-camera-video me-1"></i> Kamera: <?= esc($dash['camera']['name']) ?>
-          </span>
-        </div>
-
-        <div class="row g-3" id="recentDetectionsGallery">
-          <?php if (!empty($dash['recent_detections'])): ?>
-            <?php foreach ($dash['recent_detections'] as $rec): ?>
-              <div class="col-xl-3 col-md-6">
-                <div class="border rounded p-2 bg-white shadow-sm h-100 d-flex flex-column">
-                  <div class="position-relative mb-2 rounded overflow-hidden bg-light" style="height: 140px;">
-                    <?php if (!empty($rec['image_url'])): ?>
-                      <img src="<?= esc($rec['image_url']) ?>" alt="<?= esc($rec['class_label']) ?>"
-                           class="w-100 h-100 rounded object-fit-cover cursor-pointer"
-                           style="object-fit: cover; cursor: pointer;"
-                           onclick="openTruckModal('<?= esc($rec['image_url']) ?>', '<?= esc($rec['id']) ?>', '<?= esc($rec['class_label']) ?>', <?= $rec['is_od'] ? 'true' : 'false' ?>, '<?= esc($rec['confidence']) ?>', '<?= esc($rec['date_formatted'] . ' ' . $rec['time']) ?>', '<?= esc($rec['bbox_str'] ?? '') ?>')">
-                    <?php else: ?>
-                      <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center text-muted p-2 text-center">
-                        <i class="bi bi-truck fs-1 opacity-25"></i>
-                        <span class="small font-monospace mt-1"><?= esc($rec['bbox_str'] ?? 'Kotak [x1, y1, x2, y2]') ?></span>
-                      </div>
-                    <?php endif; ?>
-                    <div class="position-absolute top-0 start-0 m-2">
-                      <?= view('partials/detection_badge', ['result' => $rec['od_label']]) ?>
-                    </div>
-                  </div>
-                  <div class="mt-auto">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                      <span class="fw-bold text-dark small"><?= esc($rec['class_label']) ?></span>
-                      <span class="badge bg-light text-dark border font-monospace small"><?= esc($rec['confidence']) ?></span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 0.72rem;">
-                      <span><?= esc($rec['time']) ?></span>
-                      <span class="font-monospace"><?= esc($rec['id']) ?></span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <div class="col-12 text-center py-4 text-muted small">
-              <i class="bi bi-clock-history me-1"></i> Menunggu deteksi truk berikutnya dari kamera uji...
-            </div>
-          <?php endif; ?>
-        </div>
-      </div>
 
       <!-- 3.3 Distribusi 5 kelas model -->
       <div class="card-plain mb-4">
@@ -295,7 +245,16 @@ $resetFilterUrl = base_url('dashboard') . '?' . http_build_query(['source' => $p
           <input type="hidden" name="period" value="<?= esc($params['period']) ?>">
           <input type="hidden" name="tab" value="hasil-deteksi">
 
-          <div class="col-lg-4 col-md-6">
+          <div class="col-lg-3 col-md-6">
+            <label for="filterCamera" class="form-label small fw-semibold text-dark mb-1">Titik Kamera</label>
+            <select id="filterCamera" name="camera" class="form-select form-select-sm">
+              <?php foreach ($dash['filter_options']['camera'] as $key => $label): ?>
+                <option value="<?= esc($key) ?>" <?= ($params['camera'] ?? 'all') === $key ? 'selected' : '' ?>><?= esc($label) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
+          <div class="col-lg-3 col-md-6">
             <label for="filterClass" class="form-label small fw-semibold text-dark mb-1">Kelas Model</label>
             <select id="filterClass" name="class" class="form-select form-select-sm">
               <?php foreach ($dash['filter_options']['class'] as $key => $label): ?>
@@ -304,7 +263,7 @@ $resetFilterUrl = base_url('dashboard') . '?' . http_build_query(['source' => $p
             </select>
           </div>
 
-          <div class="col-lg-4 col-md-6">
+          <div class="col-lg-3 col-md-6">
             <label for="filterOd" class="form-label small fw-semibold text-dark mb-1">Indikasi Model</label>
             <select id="filterOd" name="od" class="form-select form-select-sm">
               <?php foreach ($dash['filter_options']['od'] as $key => $label): ?>
@@ -313,7 +272,7 @@ $resetFilterUrl = base_url('dashboard') . '?' . http_build_query(['source' => $p
             </select>
           </div>
 
-          <div class="col-lg-4 col-md-12">
+          <div class="col-lg-3 col-md-6">
             <div class="d-flex gap-2">
               <button type="submit" class="btn-dishub-primary flex-grow-1">
                 <i class="bi bi-funnel" aria-hidden="true"></i><span>Terapkan</span>
@@ -331,7 +290,10 @@ $resetFilterUrl = base_url('dashboard') . '?' . http_build_query(['source' => $p
       <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-3 gap-2">
         <div class="text-muted small" id="tableSummaryText">
           <?php if ($table['total'] > 0): ?>
-            Menampilkan <strong><?= esc($table['from']) ?> - <?= esc($table['to']) ?></strong> dari <strong><?= $fmt($table['total']) ?></strong> hasil
+            Menampilkan <strong><?= esc($table['from']) ?> - <?= esc($table['to']) ?></strong> dari <strong><?= $fmt($table['total']) ?></strong> hasil terbaru
+            <?php if (!empty($table['real_total']) && $table['real_total'] > $table['total']): ?>
+              <span class="text-muted ms-1 small" title="Tabel dibatasi maksimal 20 halaman terbaru agar performa sistem tetap ringan">(dibatasi 20 halaman, total riwayat: <?= $fmt($table['real_total']) ?>)</span>
+            <?php endif; ?>
           <?php else: ?>
             Tidak ada hasil yang ditemukan
           <?php endif; ?>
@@ -342,7 +304,7 @@ $resetFilterUrl = base_url('dashboard') . '?' . http_build_query(['source' => $p
         </div>
         <div class="text-muted small">
           <span class="d-none me-2 text-primary fw-semibold" id="tableNewDataNotice">Ada hasil baru, buka halaman 1 untuk melihat.</span>
-          Halaman <strong><?= esc($table['page']) ?></strong> dari <strong><?= esc($table['total_pages']) ?></strong>
+          Halaman <strong><span id="tableCurrentPage"><?= esc($table['page']) ?></span></strong> dari <strong><span id="tableTotalPages"><?= esc($table['total_pages']) ?></span></strong>
         </div>
       </div>
 
@@ -392,7 +354,10 @@ $resetFilterUrl = base_url('dashboard') . '?' . http_build_query(['source' => $p
                   </td>
                   <td>
                     <div class="fw-semibold small text-dark"><?= esc($row['camera_name']) ?></div>
-                    <div class="text-muted" style="font-size: 0.72rem;"><?= esc($row['camera_code']) ?></div>
+                    <div class="mt-1">
+                      <?php $camBadge = str_contains($row['camera_source'] ?? '', 'sultan_adam') || ($row['camera_code'] ?? '') === 'ATCS-02' ? 'bg-info-subtle text-info-emphasis border border-info-subtle' : 'bg-primary-subtle text-primary-emphasis border border-primary-subtle'; ?>
+                      <span class="badge <?= $camBadge ?> font-monospace" style="font-size: 0.68rem;"><?= esc($row['camera_code']) ?></span>
+                    </div>
                   </td>
                   <td>
                     <div class="small fw-semibold text-dark"><?= esc($row['class_label']) ?></div>

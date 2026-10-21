@@ -48,7 +48,7 @@ class AiIngestValidator
 
         // 2. Kamera harus kamera uji yang terdaftar
         $camera = $event['camera_source'] ?? null;
-        if ($camera !== $this->config->testCamera['source_code']) {
+        if (!is_string($camera) || !$this->config->isValidCameraSource($camera)) {
             $errors[] = 'camera_source tidak terdaftar';
         }
 
@@ -152,7 +152,7 @@ class AiIngestValidator
                 'result_unit'       => $unit,
                 'event_id'          => $eventId,
                 'camera_source'     => $camera,
-                'camera_name'       => $this->config->testCamera['name'],
+                'camera_name'       => ($this->config->getCameraBySource($camera)['name'] ?? $this->config->testCamera['name']),
                 'event_time'        => $eventTime,
                 'received_time'     => $received,
                 'time_basis'        => $basis,
@@ -194,7 +194,8 @@ class AiIngestValidator
         if (!in_array($status, ['active', 'connecting', 'reconnecting', 'stopped', 'error'], true)) {
             $errors[] = 'status tidak dikenal';
         }
-        if (($payload['camera_source'] ?? null) !== $this->config->testCamera['source_code']) {
+        $camera = $payload['camera_source'] ?? null;
+        if (!is_string($camera) || !$this->config->isValidCameraSource($camera)) {
             $errors[] = 'camera_source tidak terdaftar';
         }
 

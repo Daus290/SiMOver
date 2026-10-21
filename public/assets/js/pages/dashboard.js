@@ -268,10 +268,7 @@
         setText('insight-' + k + '-sub', data.insights[k].subtitle);
       });
 
-      // Cuplikan Galeri Truk Terkini
-      if (data.recent_detections) {
-        renderRecentGallery(data.recent_detections);
-      }
+
 
       // Grafik
       chartData = data.chart || chartData;
@@ -288,43 +285,30 @@
           if (n) n.classList.remove('d-none');
         }
       }
-    }
 
-    function renderRecentGallery(items) {
-      const gallery = document.getElementById('recentDetectionsGallery');
-      if (!gallery || !items || items.length === 0) return;
-      gallery.innerHTML = items.map(function (rec) {
-        const badge = rec.is_od
-          ? '<span class="badge-deteksi badge-overdim">Over Dimension</span>'
-          : '<span class="badge-deteksi badge-normal">Bukan OD</span>';
-
-        let mediaHtml = '';
-        if (rec.image_url) {
-          mediaHtml = '<img src="' + escapeHtml(rec.image_url) + '" alt="' + escapeHtml(rec.class_label) + '" class="w-100 h-100 rounded object-fit-cover" style="object-fit: cover; cursor: pointer;" onclick="openTruckModal(\'' + escapeHtml(rec.image_url) + '\', \'' + escapeHtml(rec.id) + '\', \'' + escapeHtml(rec.class_label) + '\', ' + (rec.is_od ? 'true' : 'false') + ', \'' + escapeHtml(rec.confidence) + '\', \'' + escapeHtml(rec.date_formatted + ' ' + rec.time) + '\', \'' + escapeHtml(rec.bbox_str || '') + '\')">';
-        } else {
-          mediaHtml = '<div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center text-muted p-2 text-center">' +
-            '<i class="bi bi-truck fs-1 opacity-25"></i>' +
-            '<span class="small font-monospace mt-1">' + escapeHtml(rec.bbox_str || 'Kotak [x1, y1, x2, y2]') + '</span>' +
-            '</div>';
+      if (data.table) {
+        const sumEl = document.getElementById('tableSummaryText');
+        if (sumEl) {
+          if (data.table.total > 0) {
+            let html = 'Menampilkan <strong>' + escapeHtml(data.table.from) + ' - ' + escapeHtml(data.table.to) + '</strong> dari <strong>' + fmtNum(data.table.total) + '</strong> hasil terbaru';
+            if (data.table.real_total && data.table.real_total > data.table.total) {
+              html += ' <span class="text-muted ms-1 small" title="Tabel dibatasi maksimal 20 halaman terbaru agar performa sistem tetap ringan">(dibatasi 20 halaman, total riwayat: ' + fmtNum(data.table.real_total) + ')</span>';
+            }
+            if (data.table.has_active_filter) {
+              html += ' <span class="badge-filter-active ms-2">Filter Aktif</span> <span class="text-muted ms-1 small">(Total periode: ' + fmtNum(data.table.global_total) + ' hasil)</span>';
+            }
+            sumEl.innerHTML = html;
+          } else {
+            sumEl.textContent = 'Tidak ada hasil yang sesuai dengan filter ini';
+          }
         }
-
-        return '<div class="col-xl-3 col-md-6">' +
-          '<div class="border rounded p-2 bg-white shadow-sm h-100 d-flex flex-column">' +
-          '<div class="position-relative mb-2 rounded overflow-hidden bg-light" style="height: 140px;">' +
-          mediaHtml +
-          '<div class="position-absolute top-0 start-0 m-2">' + badge + '</div>' +
-          '</div>' +
-          '<div class="mt-auto">' +
-          '<div class="d-flex justify-content-between align-items-center mb-1">' +
-          '<span class="fw-bold text-dark small">' + escapeHtml(rec.class_label) + '</span>' +
-          '<span class="badge bg-light text-dark border font-monospace small">' + escapeHtml(rec.confidence) + '</span>' +
-          '</div>' +
-          '<div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 0.72rem;">' +
-          '<span>' + escapeHtml(rec.time) + '</span>' +
-          '<span class="font-monospace">' + escapeHtml(rec.id) + '</span>' +
-          '</div></div></div></div>';
-      }).join('');
+        const totalPagesEl = document.getElementById('tableTotalPages');
+        if (totalPagesEl && data.table.total_pages) {
+          totalPagesEl.textContent = data.table.total_pages;
+        }
+      }
     }
+
 
     function renderRows(rows) {
       const tbody = document.getElementById('detectionTableBody');
@@ -344,6 +328,11 @@
           thumbCell = '<span class="badge bg-light text-secondary border font-monospace small" title="Koordinat Bounding Box"><i class="bi bi-bounding-box me-1"></i>' + escapeHtml(r.bbox_str) + '</span>';
         }
 
+        const isSultanAdam = (r.camera_source && r.camera_source.indexOf('sultan_adam') !== -1) || (r.camera_code === 'ATCS-02');
+        const camBadgeClass = isSultanAdam
+          ? 'badge bg-info-subtle text-info-emphasis border border-info-subtle font-monospace'
+          : 'badge bg-primary-subtle text-primary-emphasis border border-primary-subtle font-monospace';
+
         return '<tr>' +
           '<td><span class="fw-bold font-monospace text-dark small">' + escapeHtml(r.id) + '</span></td>' +
           '<td>' + thumbCell + '</td>' +
@@ -351,13 +340,22 @@
           '<div class="text-muted" style="font-size: 0.75rem;">' + escapeHtml(r.time) + '</div>' +
           '<div class="text-muted" style="font-size: 0.68rem;">' + escapeHtml(r.time_basis) + '</div></td>' +
           '<td><div class="fw-semibold small text-dark">' + escapeHtml(r.camera_name) + '</div>' +
-          '<div class="text-muted" style="font-size: 0.72rem;">' + escapeHtml(r.camera_code) + '</div></td>' +
+          '<div class="mt-1"><span class="' + camBadgeClass + '" style="font-size: 0.68rem;">' + escapeHtml(r.camera_code) + '</span></div></td>' +
           '<td><div class="small fw-semibold text-dark">' + escapeHtml(r.class_label) + '</div>' +
           '<code class="text-muted" style="font-size: 0.7rem;">' + escapeHtml(r.class_name) + '</code></td>' +
           '<td><span class="badge bg-light text-dark border small fw-semibold font-monospace">' + escapeHtml(r.confidence) + '</span></td>' +
           '<td>' + badge + '</td>' +
           '</tr>';
       }).join('');
+    }
+
+    // Auto submit filter kamera bila diganti oleh pengguna
+    const filterCameraEl = document.getElementById('filterCamera');
+    if (filterCameraEl) {
+      filterCameraEl.addEventListener('change', function () {
+        const form = this.closest('form');
+        if (form) form.submit();
+      });
     }
 
     window.openTruckModal = function (imgUrl, id, title, isOd, conf, time, bbox) {
@@ -405,7 +403,15 @@
       const timeout = setTimeout(function () { controller.abort(); }, 8000);
 
       try {
-        const q = new URLSearchParams({ source: params.source, period: params.period, page: params.page, class: params.class, od: params.od });
+        const queryParams = {
+          source: params.source,
+          period: params.period,
+          page: params.page,
+          class: params.class,
+          od: params.od,
+          camera: params.camera || 'all'
+        };
+        const q = new URLSearchParams(queryParams);
         const resp = await fetch(config.dataUrl + '?' + q.toString(), { cache: 'no-store', signal: controller.signal });
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const data = await resp.json();

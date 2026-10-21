@@ -11,37 +11,28 @@ class LiveCctv extends BaseController
 {
     protected DummyDataService $dummyData;
     protected AtcsCctvService $atcsService;
-    protected DishubCameraLocationService $dishubLocationService;
 
     public function __construct()
     {
-        $this->dummyData = new DummyDataService();
+        $this->dummyData   = new DummyDataService();
         $this->atcsService = new AtcsCctvService();
-        $this->dishubLocationService = new DishubCameraLocationService();
     }
 
     public function index(): string
     {
-        $rawCctv = $this->request->getGet('cctv');
+        $rawCctv      = $this->request->getGet('cctv');
         $selectedCctv = null;
         $invalidParam = false;
+        $cameras      = $this->atcsService->getCctvList();
 
-        // Validasi parameter cctv yang aman (hindari array, string terlalu panjang, atau karakter aneh)
+        // Validasi parameter cctv yang aman
         if ($rawCctv !== null) {
             if (is_array($rawCctv) || !is_string($rawCctv) || strlen(trim((string)$rawCctv)) > 64) {
                 $invalidParam = true;
             } else {
                 $cleanCode = trim((string)$rawCctv);
                 if ($cleanCode !== '') {
-                    // 1. Cek pada daftar kamera Dishub Banjarbaru terlebih dahulu (BJB-...) dengan overlay Live CCTV
-                    $selectedCctv = $this->dishubLocationService->getCameraForLiveCctv($cleanCode);
-
-                    // 2. Jika tidak ditemukan, cek pada daftar kamera ATCS Banjarmasin (ATCS-...)
-                    if ($selectedCctv === null) {
-                        $selectedCctv = $this->atcsService->getCctvByCode($cleanCode);
-                    }
-
-                    // 3. Jika tetap tidak ditemukan di kedua sumber terdaftar
+                    $selectedCctv = $this->atcsService->getCctvByCode($cleanCode);
                     if ($selectedCctv === null) {
                         $invalidParam = true;
                     }
@@ -49,37 +40,22 @@ class LiveCctv extends BaseController
             }
         }
 
+        // Jika tidak ada parameter cctv, tampilkan kamera pertama secara otomatis agar player langsung memutar stream
+        if ($selectedCctv === null && !$invalidParam && !empty($cameras)) {
+            $selectedCctv = $cameras[0];
+        }
+
         $data = [
-            'title'              => 'Live CCTV - Pemantauan Lalu Lintas Dishub Kota Banjarbaru',
-            'active_nav'         => 'live_cctv',
-            'meta'               => $this->dummyData->getSystemMeta(),
-            'stats'              => $this->dummyData->getDailyStatistics(),
-            'bjb_cameras'        => $this->dishubLocationService->getCamerasForLiveCctv(),
-            'bjb_intersections'  => $this->dishubLocationService->getIntersections(),
-            'bjb_summary'        => $this->dishubLocationService->getSummaryCounts(),
-            'atcs_cameras'       => $this->atcsService->getCctvList(),
-            'ai_test_camera'     => $this->atcsService->getAiTestCamera(),
-            'ai_core_status'     => $this->getAiCoreStatus(),
-            'selected_cctv'      => $selectedCctv,
-            'selected_code'      => $selectedCctv ? $selectedCctv['code'] : null,
-            'invalid_param'      => $invalidParam,
+            'title'         => 'Live CCTV - Pemantauan Lalu Lintas Dishub',
+            'active_nav'    => 'live_cctv',
+            'meta'          => $this->dummyData->getSystemMeta(),
+            'stats'         => $this->dummyData->getDailyStatistics(),
+            'cameras'       => $cameras,
+            'selected_cctv' => $selectedCctv,
+            'selected_code' => $selectedCctv ? $selectedCctv['code'] : null,
+            'invalid_param' => $invalidParam,
         ];
 
         return view('pages/live_cctv', $data);
-    }
-
-    /**
-     * Status pengirim tepercaya core Rizkiya dari heartbeat aktual.
-     * Bila database tidak tersedia, halaman CCTV tetap tampil dengan status tidak diketahui.
-     */
-    protected function getAiCoreStatus(): array
-    {
-        try {
-            return (new AiWorkerStatusModel())->getSourceStatus('rizkiya_core');
-        } catch (\Throwable $e) {
-            log_message('warning', 'Status AI tidak dapat dibaca: ' . $e->getMessage());
-
-            return ['state' => 'tidak_diketahui', 'label' => 'Status tidak dapat dibaca', 'is_live' => false];
-        }
     }
 }

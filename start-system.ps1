@@ -350,8 +350,8 @@ function Start-LocalWebServer {
         }
     }
 
-    Write-Host "-> Menyalakan server web CodeIgniter 4 (port $Port)..." -ForegroundColor Cyan
-    $cmdLine = "cmd.exe /c `"`"$PhpExe`" spark serve --host localhost --port $Port > `"$serveLog`" 2>&1`""
+    Write-Host "-> Menyalakan server web CodeIgniter 4 (port $Port, multi-worker)..." -ForegroundColor Cyan
+    $cmdLine = "cmd.exe /c `"set PHP_CLI_SERVER_WORKERS=4&& `"$PhpExe`" spark serve --host localhost --port $Port > `"$serveLog`" 2>&1`""
 
     try {
         $wmi = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
@@ -529,7 +529,7 @@ function Show-SystemSummary {
 
     # 5. Lokasi Log & Cache
     Write-Host "Log Web   : writable\logs\spark_serve.log" -ForegroundColor Gray
-    Write-Host "Cache HLS : writable\cache\vivotek_stream\" -ForegroundColor Gray
+    Write-Host "AI Worker : Jalankan .\start-ai.bat atau 'python -m ai_worker.worker'" -ForegroundColor Cyan
     Write-Host "============================================================`n" -ForegroundColor Cyan
 }
 

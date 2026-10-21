@@ -2,7 +2,15 @@ import logging
 from typing import List, Dict, Any, Tuple
 import cv2
 import numpy as np
+import torch
 from ultralytics import YOLO
+
+# Batasi penggunaan core CPU per instance agar sistem tetap dingin dan responsif
+try:
+    torch.set_num_threads(2)
+except Exception:
+    pass
+cv2.setNumThreads(1)
 
 from .config import DETECTOR_MODEL_NAME, VEHICLE_COCO_CLASSES, CONFIDENCE_THRESHOLD
 

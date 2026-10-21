@@ -18,136 +18,72 @@ class AtcsCctvService
     public const UPSTREAM_HOST = 'https://atcs.banjarmasinkota.go.id';
 
     /**
-     * Daftar 6 kamera resmi ATCS Banjarmasin
+     * Daftar 2 kamera resmi ATCS Banjarmasin aktif untuk pemantauan Live CCTV & AI
      * 
      * @var array<string, array<string, mixed>>
      */
     protected array $cameras = [
-        'jembatan_alalak_arah_luar_kota' => [
+        'jalan_gubernur_soebardjo_jembatan_tatah_bangkal_masuk_kota' => [
             'id'             => 'atcs-01',
             'code'           => 'ATCS-01',
-            'source_code'    => 'jembatan_alalak_arah_luar_kota',
-            'name'           => 'Jembatan Alalak Arah Luar Kota',
-            'short_name'     => 'Jembatan Alalak',
-            'category'       => 'Ruas Jalan',
-            'location'       => 'Jembatan Alalak, Banjarmasin',
-            'city'           => 'Kota Banjarmasin',
-            'latitude'       => -3.277988,
-            'longitude'      => 114.589547,
-            'status'         => 'online',
-            'resolution'     => '1280x720 (HD)',
-            'description'    => 'Pemantauan arus lalu lintas dan kendaraan barang pada Jembatan Alalak arah luar kota.',
-            'attribution'    => 'ATCS Dishub Kota Banjarmasin',
-            'source_url'     => 'https://atcs.banjarmasinkota.go.id/',
-        ],
-        'jalan_gubernur_soebardjo_jembatan_tatah_bangkal_keluar_kota' => [
-            'id'             => 'atcs-02',
-            'code'           => 'ATCS-02',
-            'source_code'    => 'jalan_gubernur_soebardjo_jembatan_tatah_bangkal_keluar_kota',
+            'source_code'    => 'jalan_gubernur_soebardjo_jembatan_tatah_bangkal_masuk_kota',
             'name'           => 'Jl. Gubernur Soebardjo (Jembatan Tatah Bangkal)',
             'short_name'     => 'Jembatan Tatah Bangkal',
             'category'       => 'Ruas Jalan',
             'location'       => 'Jl. Gubernur Soebardjo, Banjarmasin',
             'city'           => 'Kota Banjarmasin',
-            'latitude'       => -3.372661018410213,
-            'longitude'      => 114.58754469407165,
+            'latitude'       => -3.372661,
+            'longitude'      => 114.587545,
             'status'         => 'online',
             'resolution'     => '1280x720 (HD)',
-            'description'    => 'Jalur lingkar selatan angkutan logistik dan peti kemas Jembatan Tatah Bangkal keluar kota.',
+            'description'    => 'Jalur lingkar angkutan logistik dan peti kemas Jl. Gubernur Soebardjo (Jembatan Tatah Bangkal).',
             'attribution'    => 'ATCS Dishub Kota Banjarmasin',
             'source_url'     => 'https://atcs.banjarmasinkota.go.id/',
+            'stream_file'    => 'index.m3u8',
+            'is_ai_active'   => true,
         ],
-        'u_turn_jalan_a_yani_km_5' => [
-            'id'             => 'atcs-03',
-            'code'           => 'ATCS-03',
-            'source_code'    => 'u_turn_jalan_a_yani_km_5',
-            'name'           => 'U-Turn Jalan A Yani KM 5',
-            'short_name'     => 'U-Turn KM 5',
-            'category'       => 'Ruas Jalan',
-            'location'       => 'Jl. Ahmad Yani KM 5, Banjarmasin',
-            'city'           => 'Kota Banjarmasin',
-            'latitude'       => -3.347506,
-            'longitude'      => 114.624710,
-            'status'         => 'online',
-            'resolution'     => '1280x720 (HD)',
-            'description'    => 'Pemantauan putaran balik arteri utama Jalan A. Yani KM 5.',
-            'attribution'    => 'ATCS Dishub Kota Banjarmasin',
-            'source_url'     => 'https://atcs.banjarmasinkota.go.id/',
-        ],
-        'simpang_a_yani_pramuka_km_6' => [
-            'id'             => 'atcs-04',
-            'code'           => 'ATCS-04',
-            'source_code'    => 'simpang_a_yani_pramuka_km_6',
-            'name'           => 'Simpang A Yani - Pramuka KM 6',
-            'short_name'     => 'Simpang Pramuka KM 6',
+        'simpang_sultan_adam_sungai_andai' => [
+            'id'             => 'atcs-02',
+            'code'           => 'ATCS-02',
+            'source_code'    => 'simpang_sultan_adam_sungai_andai',
+            'name'           => 'Simpang Sultan Adam - Sungai Andai',
+            'short_name'     => 'Simpang Sultan Adam',
             'category'       => 'Simpang',
-            'location'       => 'Simpang KM 6 (Jl. A. Yani - Jl. Pramuka), Banjarmasin',
+            'location'       => 'Simpang Jl. Sultan Adam - Jl. Sungai Andai, Banjarmasin',
             'city'           => 'Kota Banjarmasin',
-            'latitude'       => -3.348813,
-            'longitude'      => 114.625723,
+            'latitude'       => -3.300762,
+            'longitude'      => 114.606277,
             'status'         => 'online',
             'resolution'     => '640x360 (SD)',
-            'description'    => 'Titik temu koridor angkutan antar kota dan terminal Simpang Pramuka KM 6.',
+            'description'    => 'Persimpangan strategis koridor Jl. Sultan Adam dan akses kawasan Sungai Andai.',
             'attribution'    => 'ATCS Dishub Kota Banjarmasin',
             'source_url'     => 'https://atcs.banjarmasinkota.go.id/',
-        ],
-        'simpang_gerilya' => [
-            'id'             => 'atcs-05',
-            'code'           => 'ATCS-05',
-            'source_code'    => 'simpang_gerilya',
-            'name'           => 'Simpang Gerilya',
-            'short_name'     => 'Simpang Gerilya',
-            'category'       => 'Simpang',
-            'location'       => 'Simpang Jl. Gerilya, Banjarmasin',
-            'city'           => 'Kota Banjarmasin',
-            'latitude'       => -3.350410,
-            'longitude'      => 114.596541,
-            'status'         => 'online',
-            'resolution'     => '640x360 (SD)',
-            'description'    => 'Persimpangan strategis perlintasan angkutan barang dan kendaraan niaga kawasan Gerilya.',
-            'attribution'    => 'ATCS Dishub Kota Banjarmasin',
-            'source_url'     => 'https://atcs.banjarmasinkota.go.id/',
-        ],
-        'simpang_a_yani_gatot_fly_over_km_3' => [
-            'id'             => 'atcs-06',
-            'code'           => 'ATCS-06',
-            'source_code'    => 'simpang_a_yani_gatot_fly_over_km_3',
-            'name'           => 'Simpang A Yani Gatot / Fly Over KM 3',
-            'short_name'     => 'Fly Over KM 3',
-            'category'       => 'Simpang',
-            'location'       => 'Fly Over KM 3 (Jl. A. Yani - Jl. Gatot Subroto), Banjarmasin',
-            'city'           => 'Kota Banjarmasin',
-            'latitude'       => -3.331971,
-            'longitude'      => 114.613616,
-            'status'         => 'online',
-            'resolution'     => '640x360 (SD)',
-            'description'    => 'Pemantauan lalu lintas Fly Over KM 3 dan simpang Gatot Subroto.',
-            'attribution'    => 'ATCS Dishub Kota Banjarmasin',
-            'source_url'     => 'https://atcs.banjarmasinkota.go.id/',
+            'stream_file'    => 'video1_stream.m3u8',
+            'is_ai_active'   => true,
         ],
     ];
 
     /**
-     * Kamera Khusus Pengujian AI Model Integrasi (1 Kamera ATCS Banjarmasin)
-     * Tidak menambah jumlah kamera Banjarbaru (tetap 18 titik / 17 terpasang).
+     * Kamera Khusus Pengujian AI Utama (kompatibilitas mundur)
      */
     protected array $aiTestCamera = [
-        'id'             => 'atcs-ai-test',
-        'code'           => 'ATCS-TEST',
+        'id'             => 'atcs-01',
+        'code'           => 'ATCS-01',
         'source_code'    => 'jalan_gubernur_soebardjo_jembatan_tatah_bangkal_masuk_kota',
-        'name'           => 'Jalan Gubernur Soebardjo Jembatan Tatah Bangkal Masuk Kota',
+        'name'           => 'Jl. Gubernur Soebardjo (Jembatan Tatah Bangkal)',
         'short_name'     => 'Tatah Bangkal Masuk Kota',
-        'category'       => 'Pengujian AI (Model Teman)',
+        'category'       => 'Ruas Jalan',
         'location'       => 'Jl. Gubernur Soebardjo, Tatah Bangkal, Banjarmasin',
         'city'           => 'Kota Banjarmasin',
         'latitude'       => -3.372661,
         'longitude'      => 114.587545,
         'status'         => 'online',
         'resolution'     => '1280x720 (HD)',
-        'description'    => 'Kamera uji coba integrasi model YOLOv8m-cls (5 kelas) untuk deteksi kendaraan niaga dan over dimension.',
-        'attribution'    => 'ATCS Dishub Kota Banjarmasin & Tim Peneliti',
+        'description'    => 'Kamera integrasi model AI YOLO + Classifier 5 kelas untuk deteksi truk over dimension.',
+        'attribution'    => 'ATCS Dishub Kota Banjarmasin',
         'source_url'     => 'https://atcs.banjarmasinkota.go.id/',
-        'is_ai_test'     => true,
+        'stream_file'    => 'index.m3u8',
+        'is_ai_active'   => true,
     ];
 
     /**
@@ -159,7 +95,7 @@ class AtcsCctvService
     }
 
     /**
-     * Mengembalikan seluruh daftar kamera dengan URL stream dan snapshot yang sudah dipetakan
+     * Mengembalikan seluruh daftar kamera aktif untuk Live CCTV
      * 
      * @return list<array<string, mixed>>
      */
@@ -173,7 +109,15 @@ class AtcsCctvService
     }
 
     /**
-     * Cari kamera berdasarkan kode (misal ATCS-01, ATCS-TEST), source_code, atau ID
+     * Alias method untuk Live CCTV
+     */
+    public function getLiveCameras(): array
+    {
+        return $this->getCctvList();
+    }
+
+    /**
+     * Cari kamera berdasarkan kode (misal ATCS-01, ATCS-02, ATCS-TEST), source_code, ID, atau kata kunci
      */
     public function getCctvByCode(string $code): ?array
     {
@@ -182,20 +126,20 @@ class AtcsCctvService
             return null;
         }
 
-        // Cek kamera uji AI terlebih dahulu
-        if (
-            strtolower($this->aiTestCamera['code']) === $normalized ||
-            strtolower($this->aiTestCamera['id']) === $normalized ||
-            strtolower($this->aiTestCamera['source_code']) === $normalized
-        ) {
-            return $this->enrichCameraData($this->aiTestCamera);
+        // Alias ATCS-TEST diarahkan ke ATCS-01 (Gubernur Soebardjo)
+        if ($normalized === 'atcs-test' || $normalized === 'soebardjo') {
+            return $this->enrichCameraData($this->cameras['jalan_gubernur_soebardjo_jembatan_tatah_bangkal_masuk_kota']);
+        }
+        if ($normalized === 'sultan_adam' || $normalized === 'sungai_andai') {
+            return $this->enrichCameraData($this->cameras['simpang_sultan_adam_sungai_andai']);
         }
 
         foreach ($this->cameras as $sourceCode => $camera) {
             if (
                 strtolower($camera['code']) === $normalized ||
                 strtolower($camera['id']) === $normalized ||
-                strtolower($sourceCode) === $normalized
+                strtolower($sourceCode) === $normalized ||
+                str_contains($sourceCode, $normalized)
             ) {
                 return $this->enrichCameraData($camera);
             }
@@ -210,7 +154,7 @@ class AtcsCctvService
     public function isValidSourceCode(string $sourceCode): bool
     {
         $code = trim($sourceCode);
-        return array_key_exists($code, $this->cameras) || ($code === $this->aiTestCamera['source_code']);
+        return array_key_exists($code, $this->cameras);
     }
 
     /**
@@ -229,16 +173,16 @@ class AtcsCctvService
     protected function enrichCameraData(array $camera): array
     {
         $sourceCode = $camera['source_code'];
+        $streamFile = $camera['stream_file'] ?? 'index.m3u8';
 
         $camera['provider']           = self::PROVIDER;
-        $camera['upstream_stream']    = self::UPSTREAM_HOST . "/stream/{$sourceCode}/index.m3u8";
+        $camera['upstream_stream']    = self::UPSTREAM_HOST . "/stream/{$sourceCode}/{$streamFile}";
         $camera['upstream_snapshot']  = self::UPSTREAM_HOST . "/screenshot/{$sourceCode}.webp";
         
-        // Stream dilayani melalui HLS Proxy multi-threaded (port 8088) dengan CORS bersih.
-        // Mencegah bottleneck I/O pada server PHP CodeIgniter dan menghindari penolakan CORS browser dari upstream ATCS.
-        $proxyHost                    = 'http://localhost:8088';
-        $camera['stream_url']         = "{$proxyHost}/stream/{$sourceCode}/index.m3u8";
-        $camera['proxy_stream']       = "{$proxyHost}/stream/{$sourceCode}/index.m3u8";
+        // Langsung gunakan stream resmi ATCS Banjarmasin (memiliki CORS * dan SSL tepercaya)
+        // Menghindari proxy Python lokal agar pemutaran video HLS real-time tanpa buffering.
+        $camera['stream_url']         = $camera['upstream_stream'];
+        $camera['proxy_stream']       = $camera['upstream_stream'];
         $camera['snapshot_url']       = $camera['upstream_snapshot'];
         $camera['proxy_snapshot']     = $camera['upstream_snapshot'];
         

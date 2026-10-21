@@ -31,19 +31,27 @@ class DetectionPipeline:
     disertai deduplikasi spasial terhadap pergantian track_id.
     """
 
-    def __init__(self, classifier: VehicleClassifier):
+    def __init__(self, classifier: VehicleClassifier, camera_config: Optional[Dict[str, Any]] = None):
         self.classifier = classifier
+        self.camera_config = camera_config or {}
+        self.camera_source = self.camera_config.get("source_code", CAMERA_SOURCE)
+        self.camera_name = self.camera_config.get("name", CAMERA_NAME)
+        self.camera_prefix = "atcs_sa" if "sultan_adam" in self.camera_source else "atcs_tb"
+
+        counting_line = self.camera_config.get("counting_line", COUNTING_LINE)
+        detection_zone = self.camera_config.get("detection_zone", DETECTION_ZONE)
+
         self.counted_tracks: Dict[int, Dict[str, Any]] = {}
         self.track_history: Dict[int, List[tuple]] = {}
-        self.line_y = COUNTING_LINE["y1"]
-        self.line_x1 = COUNTING_LINE["x1"]
-        self.line_x2 = COUNTING_LINE["x2"]
+        self.line_y = counting_line["y1"]
+        self.line_x1 = counting_line["x1"]
+        self.line_x2 = counting_line["x2"]
 
         # Batas Zona Deteksi Jalan Aktif
-        self.zone_y_min = DETECTION_ZONE.get("y_min", 260)
-        self.zone_y_max = DETECTION_ZONE.get("y_max", 620)
-        self.zone_x_min = DETECTION_ZONE.get("x_min", 50)
-        self.zone_x_max = DETECTION_ZONE.get("x_max", 1220)
+        self.zone_y_min = detection_zone.get("y_min", 260)
+        self.zone_y_max = detection_zone.get("y_max", 620)
+        self.zone_x_min = detection_zone.get("x_min", 50)
+        self.zone_x_max = detection_zone.get("x_max", 1220)
 
         # Riwayat pengiriman untuk deduplikasi spasial (timestamp, cx, cy)
         self.recent_dispatches: List[tuple] = []
@@ -95,12 +103,15 @@ class DetectionPipeline:
                         if self.line_x1 <= cx <= self.line_x2:
                             should_classify = True
 
-                # Pemicu 2: Berada di Detection Zone
+                # Pemicu 2: Berada di Detection Zone & kendaraan aktif bergerak (bukan diam di lampu merah)
                 if not should_classify:
                     in_zone = (self.zone_y_min <= cy <= self.zone_y_max) and (self.zone_x_min <= cx <= self.zone_x_max)
-                    if in_zone:
+                    if in_zone and len(history) >= 3:
+                        dx = abs(history[-1][0] - history[0][0])
+                        dy = abs(history[-1][1] - history[0][1])
+                        movement = (dx ** 2 + dy ** 2) ** 0.5
                         is_large_enough = (crop.shape[0] * crop.shape[1]) >= 1500
-                        if len(history) >= 2 or (len(history) >= 1 and is_large_enough and obj.get("confidence", 0) >= 0.30):
+                        if movement >= 20 or (is_large_enough and obj.get("confidence", 0) >= 0.35 and movement >= 10):
                             should_classify = True
 
                 if should_classify and crop.shape[0] >= 30 and crop.shape[1] >= 35:
@@ -110,9 +121,9 @@ class DetectionPipeline:
                     now_ts = time.time()
                     is_duplicate_spatial = False
                     for prev_ts, prev_cx, prev_cy in self.recent_dispatches:
-                        if (now_ts - prev_ts) < 2.5:
+                        if (now_ts - prev_ts) < 4.0:
                             dist = ((cx - prev_cx) ** 2 + (cy - prev_cy) ** 2) ** 0.5
-                            if dist < 90:
+                            if dist < 110:
                                 is_duplicate_spatial = True
                                 break
 
@@ -239,14 +250,15 @@ class DetectionPipeline:
 
             cv2.imwrite(str(out_file), snapshot, [cv2.IMWRITE_JPEG_QUALITY, 85])
 
-            # Rotasi bersihkan foto lama jika > 250 file agar storage hemat
-            files = sorted(out_dir.glob("*.jpg"), key=os.path.getmtime)
-            if len(files) > 250:
-                for old in files[:-200]:
-                    try:
-                        old.unlink()
-                    except Exception:
-                        pass
+            # Rotasi bersihkan foto lama: pertahankan maksimal 200 foto terbaru (sesuai limit 20 halaman tabel dashboard)
+            if int(time.time()) % 15 == 0:
+                files = sorted(out_dir.glob("*.jpg"), key=os.path.getmtime)
+                if len(files) > 200:
+                    for old in files[:-200]:
+                        try:
+                            old.unlink()
+                        except Exception:
+                            pass
         except Exception as e:
             logger.debug(f"Snapshot deteksi dilewati: {e}")
 
@@ -256,7 +268,7 @@ class DetectionPipeline:
         """
         now_wita = self._get_wita_now()
         timestamp_sec = int(time.time())
-        event_id = f"atcs_tb_{track_id}_{timestamp_sec}"
+        event_id = f"{self.camera_prefix}_{track_id}_{timestamp_sec}"
 
         # Simpan snapshot visual di background thread
         if frame is not None:
@@ -268,8 +280,8 @@ class DetectionPipeline:
 
         payload = {
             "event_id": event_id,
-            "camera_source": CAMERA_SOURCE,
-            "camera_name": CAMERA_NAME,
+            "camera_source": self.camera_source,
+            "camera_name": self.camera_name,
             "event_time": now_wita,
             "track_id": track_id,
             "class_index": cls["class_index"],
@@ -296,14 +308,19 @@ class DetectionPipeline:
         }
 
         def _send_worker():
-            try:
-                resp = self.http_session.post(DETECTION_API_URL, json=payload, headers=headers, timeout=6.0)
-                if resp.status_code == 200:
-                    logger.info(f"-> [EVENT TERSIMPAN] {cls['indonesian_label']} #{track_id} (OD: {cls['is_over_dimension']}) - ID: {event_id}")
-                else:
-                    logger.warning(f"Gagal mengirim event #{track_id} (HTTP {resp.status_code}): {resp.text}")
-            except Exception as e:
-                logger.warning(f"Koneksi gagal saat mengirim event #{track_id}: {e}")
+            for attempt in range(2):
+                try:
+                    resp = self.http_session.post(DETECTION_API_URL, json=payload, headers=headers, timeout=12.0)
+                    if resp.status_code == 200:
+                        logger.info(f"-> [EVENT TERSIMPAN] {cls['indonesian_label']} #{track_id} (OD: {cls['is_over_dimension']}) - ID: {event_id}")
+                        return
+                    else:
+                        logger.warning(f"Gagal mengirim event #{track_id} (HTTP {resp.status_code}): {resp.text}")
+                except Exception as e:
+                    if attempt == 0:
+                        time.sleep(1.0)
+                    else:
+                        logger.warning(f"Koneksi gagal saat mengirim event #{track_id}: {e}")
 
         threading.Thread(target=_send_worker, daemon=True).start()
         return True

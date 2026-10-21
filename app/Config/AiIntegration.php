@@ -35,13 +35,41 @@ class AiIntegration extends BaseConfig
     public array $odClassNames = ['truck_over_dimension'];
 
     /**
-     * Satu-satunya kamera uji yang boleh mengirim hasil.
+     * Daftar kamera pengujian AI yang diizinkan mengirim hasil dan dipantau.
+     *
+     * @var array<string, array{code: string, source_code: string, name: string}>
+     */
+    public array $testCameras = [
+        'jalan_gubernur_soebardjo_jembatan_tatah_bangkal_masuk_kota' => [
+            'code'        => 'ATCS-01',
+            'source_code' => 'jalan_gubernur_soebardjo_jembatan_tatah_bangkal_masuk_kota',
+            'name'        => 'Jl. Gubernur Soebardjo (Jembatan Tatah Bangkal)',
+        ],
+        'simpang_sultan_adam_sungai_andai' => [
+            'code'        => 'ATCS-02',
+            'source_code' => 'simpang_sultan_adam_sungai_andai',
+            'name'        => 'Simpang Sultan Adam - Sungai Andai',
+        ],
+    ];
+
+    /**
+     * Kamera uji utama (kompatibilitas mundur)
      */
     public array $testCamera = [
-        'code'        => 'ATCS-TEST',
+        'code'        => 'ATCS-01',
         'source_code' => 'jalan_gubernur_soebardjo_jembatan_tatah_bangkal_masuk_kota',
-        'name'        => 'Jalan Gubernur Soebardjo Jembatan Tatah Bangkal Masuk Kota',
+        'name'        => 'Jl. Gubernur Soebardjo (Jembatan Tatah Bangkal)',
     ];
+
+    public function getCameraBySource(string $sourceCode): ?array
+    {
+        return $this->testCameras[$sourceCode] ?? null;
+    }
+
+    public function isValidCameraSource(string $sourceCode): bool
+    {
+        return array_key_exists($sourceCode, $this->testCameras);
+    }
 
     /**
      * Asal data (data_origin). Asal ditentukan server dari token pengirim, bukan dari payload.

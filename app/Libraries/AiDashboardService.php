@@ -60,6 +60,12 @@ class AiDashboardService
             $od = 'all';
         }
 
+        $camera = $str($get['camera'] ?? null);
+        $allowedCameras = array_keys($this->ai->testCameras);
+        if (!in_array($camera, $allowedCameras, true)) {
+            $camera = 'all';
+        }
+
         return [
             'period' => $period,
             'tab'    => $tab,
@@ -67,6 +73,7 @@ class AiDashboardService
             'page'   => $page,
             'class'  => $class,
             'od'     => $od,
+            'camera' => $camera,
         ];
     }
 
@@ -93,20 +100,23 @@ class AiDashboardService
             'insights'    => $this->detections->getInsights($origin, $range, $stats),
             'chart'       => $this->detections->getChartData($origin, $range, $params['period']),
             'table'       => $this->detections->getPaginatedTable($origin, $range, [
-                'class' => $params['class'],
-                'od'    => $params['od'],
+                'class'  => $params['class'],
+                'od'     => $params['od'],
+                'camera' => $params['camera'],
             ], $params['page']),
             'status'      => $this->status->getSourceStatus($origin),
             'recent_detections' => $this->detections->getRecentDetections($origin, $range, 4),
             'filter_options' => [
-                'class' => ['all' => 'Semua Kelas Model'] + array_column($this->ai->classes, 'label', 'name'),
-                'od'    => ['all' => 'Semua', 'ya' => 'Over Dimension', 'tidak' => 'Bukan OD'],
+                'class'  => ['all' => 'Semua Kelas Model'] + array_column($this->ai->classes, 'label', 'name'),
+                'od'     => ['all' => 'Semua', 'ya' => 'Over Dimension', 'tidak' => 'Bukan OD'],
+                'camera' => ['all' => 'Semua Titik Kamera (' . count($this->ai->testCameras) . ')'] + array_column($this->ai->testCameras, 'name', 'source_code'),
             ],
             'source_options' => array_map(
                 fn (string $o) => $this->ai->origins[$o]['short_label'],
                 $this->ai->dashboardSources
             ),
             'camera'      => $this->ai->testCamera,
+            'cameras'     => array_values($this->ai->testCameras),
             'as_of'       => $range['end'],
         ];
     }
