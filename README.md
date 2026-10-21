@@ -1,12 +1,12 @@
-# SiMover — Sistem Monitoring Over Dimension Dinas Perhubungan Kota Banjarbaru
+# SiMover — Sistem Monitoring Over Dimension
 
-Sistem Monitoring Over Dimension (SiMover) adalah platform berbasis web untuk pemantauan pelanggaran dimensi kendaraan (Over Dimension) dan pengawasan lalu lintas secara real-time melalui integrasi kamera CCTV streaming di wilayah Kota Banjarbaru, Kalimantan Selatan.
+Sistem Monitoring Over Dimension (SiMover) adalah platform berbasis web untuk pemantauan pelanggaran dimensi kendaraan (Over Dimension) dan pengawasan lalu lintas secara real-time melalui integrasi kamera CCTV streaming.
 
 ---
 
 ## 1. Tujuan Proyek
 - **Pengawasan Real-Time**: Pemantauan langsung jaringan kamera CCTV lalu lintas (simpang strategis Kota Banjarbaru) menggunakan streaming HLS berlatensi rendah.
-- **Deteksi Over Dimension**: Menampilkan visualisasi data klasifikasi kendaraan (*Normal*, *Kontainer*, dan *Over Dimension*) untuk mendukung penertiban angkutan barang oleh Dinas Perhubungan.
+- **Deteksi Over Dimension**: Menampilkan visualisasi data klasifikasi kendaraan (*Normal*, *Kontainer*, dan *Over Dimension*) untuk mendukung penertiban angkutan barang.
 - **Transparansi Publik & Kontrol Internal**: Menyediakan portal publik informatif untuk masyarakat umum serta panel admin terotentikasi untuk analisis mingguan, tabel deteksi, dan filtering data.
 
 > **Catatan Batasan Sistem**: Saat ini deteksi dimensi kendaraan menggunakan data contoh terstruktur (`DummyDataService`) yang siap dihubungkan ke pipeline inferensi Artificial Intelligence (AI) / Computer Vision pada tahapan pengembangan berikutnya.
