@@ -234,14 +234,16 @@ class AtcsCctvService
         $camera['upstream_stream']    = self::UPSTREAM_HOST . "/stream/{$sourceCode}/index.m3u8";
         $camera['upstream_snapshot']  = self::UPSTREAM_HOST . "/screenshot/{$sourceCode}.webp";
         
-        // URL proxy lokal yang aman untuk diputar di browser localhost
-        $camera['stream_url']         = function_exists('base_url') ? \base_url("cctv-stream/{$sourceCode}/index.m3u8") : "/cctv-stream/{$sourceCode}/index.m3u8";
-        $camera['proxy_stream']        = $camera['stream_url'];
-        $camera['snapshot_url']       = function_exists('base_url') ? \base_url("cctv-snapshot/{$sourceCode}") : "/cctv-snapshot/{$sourceCode}";
-        $camera['proxy_snapshot']     = $camera['snapshot_url'];
+        // Stream dilayani melalui HLS Proxy multi-threaded (port 8088) dengan CORS bersih.
+        // Mencegah bottleneck I/O pada server PHP CodeIgniter dan menghindari penolakan CORS browser dari upstream ATCS.
+        $proxyHost                    = 'http://localhost:8088';
+        $camera['stream_url']         = "{$proxyHost}/stream/{$sourceCode}/index.m3u8";
+        $camera['proxy_stream']       = "{$proxyHost}/stream/{$sourceCode}/index.m3u8";
+        $camera['snapshot_url']       = $camera['upstream_snapshot'];
+        $camera['proxy_snapshot']     = $camera['upstream_snapshot'];
         
         // Kompatibilitas dengan tampilan partial cctv_card (image_thumb)
-        $camera['image_thumb']        = "cctv-snapshot/{$sourceCode}";
+        $camera['image_thumb']        = $camera['upstream_snapshot'];
         $camera['is_live_capable']    = true;
 
         return $camera;

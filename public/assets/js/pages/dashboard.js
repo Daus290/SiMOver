@@ -268,6 +268,11 @@
         setText('insight-' + k + '-sub', data.insights[k].subtitle);
       });
 
+      // Cuplikan Galeri Truk Terkini
+      if (data.recent_detections) {
+        renderRecentGallery(data.recent_detections);
+      }
+
       // Grafik
       chartData = data.chart || chartData;
       if (currentTab === 'statistik') updateCharts();
@@ -285,6 +290,42 @@
       }
     }
 
+    function renderRecentGallery(items) {
+      const gallery = document.getElementById('recentDetectionsGallery');
+      if (!gallery || !items || items.length === 0) return;
+      gallery.innerHTML = items.map(function (rec) {
+        const badge = rec.is_od
+          ? '<span class="badge-deteksi badge-overdim">Over Dimension</span>'
+          : '<span class="badge-deteksi badge-normal">Bukan OD</span>';
+
+        let mediaHtml = '';
+        if (rec.image_url) {
+          mediaHtml = '<img src="' + escapeHtml(rec.image_url) + '" alt="' + escapeHtml(rec.class_label) + '" class="w-100 h-100 rounded object-fit-cover" style="object-fit: cover; cursor: pointer;" onclick="openTruckModal(\'' + escapeHtml(rec.image_url) + '\', \'' + escapeHtml(rec.id) + '\', \'' + escapeHtml(rec.class_label) + '\', ' + (rec.is_od ? 'true' : 'false') + ', \'' + escapeHtml(rec.confidence) + '\', \'' + escapeHtml(rec.date_formatted + ' ' + rec.time) + '\', \'' + escapeHtml(rec.bbox_str || '') + '\')">';
+        } else {
+          mediaHtml = '<div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center text-muted p-2 text-center">' +
+            '<i class="bi bi-truck fs-1 opacity-25"></i>' +
+            '<span class="small font-monospace mt-1">' + escapeHtml(rec.bbox_str || 'Kotak [x1, y1, x2, y2]') + '</span>' +
+            '</div>';
+        }
+
+        return '<div class="col-xl-3 col-md-6">' +
+          '<div class="border rounded p-2 bg-white shadow-sm h-100 d-flex flex-column">' +
+          '<div class="position-relative mb-2 rounded overflow-hidden bg-light" style="height: 140px;">' +
+          mediaHtml +
+          '<div class="position-absolute top-0 start-0 m-2">' + badge + '</div>' +
+          '</div>' +
+          '<div class="mt-auto">' +
+          '<div class="d-flex justify-content-between align-items-center mb-1">' +
+          '<span class="fw-bold text-dark small">' + escapeHtml(rec.class_label) + '</span>' +
+          '<span class="badge bg-light text-dark border font-monospace small">' + escapeHtml(rec.confidence) + '</span>' +
+          '</div>' +
+          '<div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 0.72rem;">' +
+          '<span>' + escapeHtml(rec.time) + '</span>' +
+          '<span class="font-monospace">' + escapeHtml(rec.id) + '</span>' +
+          '</div></div></div></div>';
+      }).join('');
+    }
+
     function renderRows(rows) {
       const tbody = document.getElementById('detectionTableBody');
       if (!tbody || !rows || rows.length === 0) return;
@@ -292,8 +333,20 @@
         const badge = r.is_od
           ? '<span class="badge-deteksi badge-overdim">Over Dimension</span>'
           : '<span class="badge-deteksi badge-normal">Bukan OD</span>';
+
+        let thumbCell = '<span class="text-muted small">-</span>';
+        if (r.image_url) {
+          thumbCell = '<div class="d-flex align-items-center gap-2">' +
+            '<img src="' + escapeHtml(r.image_url) + '" alt="Foto Truk" class="rounded border" style="width: 50px; height: 38px; object-fit: cover; cursor: pointer;" title="Klik untuk perbesar foto truk" onclick="openTruckModal(\'' + escapeHtml(r.image_url) + '\', \'' + escapeHtml(r.id) + '\', \'' + escapeHtml(r.class_label) + '\', ' + (r.is_od ? 'true' : 'false') + ', \'' + escapeHtml(r.confidence) + '\', \'' + escapeHtml(r.date_formatted + ' ' + r.time) + '\', \'' + escapeHtml(r.bbox_str || '') + '\')">' +
+            '<button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1" style="font-size: 0.68rem;" onclick="openTruckModal(\'' + escapeHtml(r.image_url) + '\', \'' + escapeHtml(r.id) + '\', \'' + escapeHtml(r.class_label) + '\', ' + (r.is_od ? 'true' : 'false') + ', \'' + escapeHtml(r.confidence) + '\', \'' + escapeHtml(r.date_formatted + ' ' + r.time) + '\', \'' + escapeHtml(r.bbox_str || '') + '\')"><i class="bi bi-zoom-in"></i></button>' +
+            '</div>';
+        } else if (r.bbox_str) {
+          thumbCell = '<span class="badge bg-light text-secondary border font-monospace small" title="Koordinat Bounding Box"><i class="bi bi-bounding-box me-1"></i>' + escapeHtml(r.bbox_str) + '</span>';
+        }
+
         return '<tr>' +
           '<td><span class="fw-bold font-monospace text-dark small">' + escapeHtml(r.id) + '</span></td>' +
+          '<td>' + thumbCell + '</td>' +
           '<td><div class="fw-semibold text-dark small">' + escapeHtml(r.date_formatted) + '</div>' +
           '<div class="text-muted" style="font-size: 0.75rem;">' + escapeHtml(r.time) + '</div>' +
           '<div class="text-muted" style="font-size: 0.68rem;">' + escapeHtml(r.time_basis) + '</div></td>' +
@@ -306,6 +359,33 @@
           '</tr>';
       }).join('');
     }
+
+    window.openTruckModal = function (imgUrl, id, title, isOd, conf, time, bbox) {
+      const modalEl = document.getElementById('truckPreviewModal');
+      if (!modalEl) return;
+      const imgEl = document.getElementById('modalTruckImage');
+      if (imgEl) imgEl.src = imgUrl;
+      const idEl = document.getElementById('modalTruckId');
+      if (idEl) idEl.textContent = id;
+      const timeEl = document.getElementById('modalTruckTime');
+      if (timeEl) timeEl.textContent = time;
+      const classEl = document.getElementById('modalTruckClass');
+      if (classEl) classEl.textContent = title;
+      const confEl = document.getElementById('modalTruckConf');
+      if (confEl) confEl.textContent = conf;
+      const bboxEl = document.getElementById('modalTruckBbox');
+      if (bboxEl) bboxEl.textContent = bbox || 'N/A';
+      const badgeEl = document.getElementById('modalTruckBadge');
+      if (badgeEl) {
+        badgeEl.innerHTML = isOd
+          ? '<span class="badge-deteksi badge-overdim">Over Dimension</span>'
+          : '<span class="badge-deteksi badge-normal">Bukan OD</span>';
+      }
+      if (window.bootstrap && window.bootstrap.Modal) {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+      }
+    };
 
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';

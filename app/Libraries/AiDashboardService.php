@@ -97,6 +97,7 @@ class AiDashboardService
                 'od'    => $params['od'],
             ], $params['page']),
             'status'      => $this->status->getSourceStatus($origin),
+            'recent_detections' => $this->detections->getRecentDetections($origin, $range, 4),
             'filter_options' => [
                 'class' => ['all' => 'Semua Kelas Model'] + array_column($this->ai->classes, 'label', 'name'),
                 'od'    => ['all' => 'Semua', 'ya' => 'Over Dimension', 'tidak' => 'Bukan OD'],

@@ -24,6 +24,7 @@ from .config import (
 from .classifier import VehicleClassifier
 from .detector import VehicleDetector
 from .pipeline import DetectionPipeline
+from .hls_proxy import start_proxy_thread, set_latest_overlay
 
 
 class FlushingFileHandler(logging.FileHandler):
@@ -44,6 +45,77 @@ logging.basicConfig(
 logger = logging.getLogger("ai_worker")
 
 WITA_TZ = timezone(timedelta(hours=8))
+
+
+import threading
+
+class ThreadedStreamCapture:
+    """
+    Reader stream video HLS berulir (threaded bufferless).
+    Secara kontinu melakukan grab() dan menyimpan HANYA frame terkini.
+    Mencegah penumpukan antrean internal FFmpeg dan menjamin inferensi
+    selalu memproses frame real-time live detik ini tanpa tunda/lag.
+    """
+    def __init__(self, stream_url: str):
+        self.stream_url = stream_url
+        self.cap = None
+        self.latest_frame = None
+        self.is_running = False
+        self.is_connected = False
+        self.lock = threading.Lock()
+        self.thread = None
+        self._connect()
+
+    def _connect(self):
+        try:
+            self.cap = cv2.VideoCapture(self.stream_url)
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            if self.cap.isOpened():
+                self.is_connected = True
+                self.is_running = True
+                self.thread = threading.Thread(target=self._reader_loop, daemon=True)
+                self.thread.start()
+            else:
+                self.is_connected = False
+        except Exception:
+            self.is_connected = False
+
+    def _reader_loop(self):
+        consecutive_failures = 0
+        while self.is_running:
+            if not self.cap or not self.cap.isOpened():
+                time.sleep(0.5)
+                continue
+            grabbed = self.cap.grab()
+            if grabbed:
+                consecutive_failures = 0
+                ret, frame = self.cap.retrieve()
+                if ret and frame is not None:
+                    with self.lock:
+                        self.latest_frame = frame
+            else:
+                consecutive_failures += 1
+                if consecutive_failures >= 25:
+                    time.sleep(0.5)
+                else:
+                    time.sleep(0.02)
+
+    def read(self):
+        if not self.is_connected:
+            return False, None
+        with self.lock:
+            if self.latest_frame is not None:
+                return True, self.latest_frame
+            return False, None
+
+    def release(self):
+        self.is_running = False
+        self.is_connected = False
+        if self.cap:
+            try:
+                self.cap.release()
+            except Exception:
+                pass
 
 
 class SimoverAiWorker:
@@ -94,29 +166,45 @@ class SimoverAiWorker:
             "Content-Type": "application/json",
             "X-AI-Worker-Token": API_TOKEN,
         }
-        try:
-            requests.post(HEARTBEAT_API_URL, json=payload, headers=headers, timeout=2.0)
-        except Exception as e:
-            logger.debug(f"Heartbeat notice: {e}")
+        def _post_heartbeat():
+            try:
+                if not hasattr(self, "http_session"):
+                    self.http_session = requests.Session()
+                self.http_session.post(HEARTBEAT_API_URL, json=payload, headers=headers, timeout=3.0)
+            except Exception as e:
+                logger.debug(f"Heartbeat notice: {e}")
+        threading.Thread(target=_post_heartbeat, daemon=True).start()
 
     def _send_overlay(self, boxes: list):
+        # 1. Update in-memory real-time proxy (port 8088) langsung tanpa beban I/O
+        try:
+            set_latest_overlay(boxes, 1280, 720)
+        except Exception:
+            pass
+
+        # 2. Sinkronkan ke cache file PHP via API secara background
+        if not OVERLAY_API_URL:
+            return
+        now_wita = datetime.now(WITA_TZ).strftime("%Y-%m-%d %H:%M:%S")
         payload = {
-            "active": True,
             "camera_source": CAMERA_SOURCE,
-            "fps": round(self.fps, 1),
-            "boxes": boxes,
-            "line": COUNTING_LINE,
-            "vehicle_count": len(boxes),
-            "total_counted": len(self.pipeline.counted_tracks) if self.pipeline else 0,
+            "frame_time": now_wita,
+            "frame_width": 1280,
+            "frame_height": 720,
+            "boxes": boxes[:25] if boxes else [],
         }
         headers = {
             "Content-Type": "application/json",
             "X-AI-Worker-Token": API_TOKEN,
         }
-        try:
-            requests.post(OVERLAY_API_URL, json=payload, headers=headers, timeout=1.5)
-        except Exception as e:
-            logger.debug(f"Overlay emit notice: {e}")
+        def _post():
+            try:
+                if not hasattr(self, "overlay_session"):
+                    self.overlay_session = requests.Session()
+                self.overlay_session.post(OVERLAY_API_URL, json=payload, headers=headers, timeout=0.8)
+            except Exception:
+                pass
+        threading.Thread(target=_post, daemon=True).start()
 
     def setup_signal_handlers(self):
         def _handler(signum, frame):
@@ -130,7 +218,7 @@ class SimoverAiWorker:
 
     def run(self):
         if not API_TOKEN:
-            logger.error("AI_INGEST_TOKEN tidak tersedia di environment. Jalankan lewat scripts/ai_worker.ps1.")
+            logger.error("Token AI tidak tersedia di environment. Periksa .env.")
             return
 
         self._write_pid()
@@ -149,33 +237,33 @@ class SimoverAiWorker:
         self._send_heartbeat("active")
 
         consecutive_read_failures = 0
-        cap = None
+        stream_reader = None
 
         try:
             while self.is_running:
-                # 1. Buka atau sambungkan kembali ke stream HLS
-                if cap is None or not cap.isOpened():
-                    logger.info("Membuka koneksi video stream HLS...")
-                    cap = cv2.VideoCapture(self.stream_url)
-                    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                # 1. Sambungkan threaded stream capture bufferless
+                if stream_reader is None or not stream_reader.is_connected:
+                    logger.info("Membuka koneksi video stream HLS (Threaded Real-Time)...")
+                    if stream_reader:
+                        stream_reader.release()
+                    stream_reader = ThreadedStreamCapture(self.stream_url)
 
-                    if not cap.isOpened():
-                        logger.warning("Gagal menghubungkan ke stream. Menunggu 4 detik sebelum mencoba kembali...")
+                    if not stream_reader.is_connected:
+                        logger.warning("Gagal menghubungkan ke stream. Menunggu 3 detik sebelum mencoba kembali...")
                         self._send_heartbeat("connecting")
-                        time.sleep(4.0)
+                        time.sleep(3.0)
                         continue
 
-                    logger.info("Stream HLS berhasil tersambung.")
+                    logger.info("Stream HLS berhasil tersambung (Threaded Reader aktif).")
                     consecutive_read_failures = 0
 
-                ret, frame = cap.read()
+                ret, frame = stream_reader.read()
                 if not ret or frame is None:
                     consecutive_read_failures += 1
-                    logger.debug(f"Frame kosong dari stream (percobaan {consecutive_read_failures})...")
-                    if consecutive_read_failures >= 15:
-                        logger.warning("Terlalu banyak kegagalan baca berturut-turut. Menginisialisasi ulang video capture...")
-                        cap.release()
-                        cap = None
+                    if consecutive_read_failures >= 40:
+                        logger.warning("Tidak menerima frame baru dalam waktu lama. Reconnecting stream...")
+                        stream_reader.release()
+                        stream_reader = None
                         time.sleep(2.0)
                     else:
                         time.sleep(0.04)
@@ -184,10 +272,10 @@ class SimoverAiWorker:
                 consecutive_read_failures = 0
                 self.frame_count += 1
 
-                # 2. Ukuran frame dan inferensi
+                # 2. Ukuran frame dan inferensi deteksi & klasifikasi
                 t0 = time.time()
                 tracked_objects = self.detector.detect_and_track(frame)
-                overlay_boxes = self.pipeline.process_frame_tracks(tracked_objects)
+                overlay_boxes = self.pipeline.process_frame_tracks(tracked_objects, frame=frame)
                 t1 = time.time()
                 self.last_inference_time_ms = (t1 - t0) * 1000.0
 
@@ -220,8 +308,8 @@ class SimoverAiWorker:
         except Exception as e:
             logger.exception(f"Terjadi kesalahan pada loop worker: {e}")
         finally:
-            if cap:
-                cap.release()
+            if stream_reader:
+                stream_reader.release()
             self._send_heartbeat("stopped")
             self._remove_pid()
             logger.info("Worker telah dihentikan secara bersih.")
@@ -232,6 +320,13 @@ def main():
     parser.add_argument("--stream", type=str, default=STREAM_URL, help="URL stream HLS")
     parser.add_argument("--max-frames", type=int, default=0, help="Batas frame maksimum (0 = kontinu)")
     args = parser.parse_args()
+
+    # Mulai HLS proxy server pada thread latar belakang (port 8088)
+    try:
+        start_proxy_thread(port=8088)
+        logger.info("HLS Stream Proxy thread berhasil dijalankan pada port 8088.")
+    except Exception as pe:
+        logger.warning(f"Catatan proxy stream port 8088: {pe}")
 
     worker = SimoverAiWorker(stream_url=args.stream, max_frames=args.max_frames)
     worker.run()

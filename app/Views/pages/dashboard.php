@@ -173,6 +173,60 @@ $resetFilterUrl = base_url('dashboard') . '?' . http_build_query(['source' => $p
         <?php endforeach; ?>
       </div>
 
+      <!-- 3.2b Cuplikan Truk Terdeteksi (Kotak Visual AI) -->
+      <div class="card-plain mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-bounding-box text-primary fs-5" aria-hidden="true"></i>
+            <h2 class="h5 fw-bold mb-0">Cuplikan Truk Terdeteksi Terakhir</h2>
+          </div>
+          <span class="badge bg-light text-muted border small">
+            <i class="bi bi-camera-video me-1"></i> Kamera: <?= esc($dash['camera']['name']) ?>
+          </span>
+        </div>
+
+        <div class="row g-3" id="recentDetectionsGallery">
+          <?php if (!empty($dash['recent_detections'])): ?>
+            <?php foreach ($dash['recent_detections'] as $rec): ?>
+              <div class="col-xl-3 col-md-6">
+                <div class="border rounded p-2 bg-white shadow-sm h-100 d-flex flex-column">
+                  <div class="position-relative mb-2 rounded overflow-hidden bg-light" style="height: 140px;">
+                    <?php if (!empty($rec['image_url'])): ?>
+                      <img src="<?= esc($rec['image_url']) ?>" alt="<?= esc($rec['class_label']) ?>"
+                           class="w-100 h-100 rounded object-fit-cover cursor-pointer"
+                           style="object-fit: cover; cursor: pointer;"
+                           onclick="openTruckModal('<?= esc($rec['image_url']) ?>', '<?= esc($rec['id']) ?>', '<?= esc($rec['class_label']) ?>', <?= $rec['is_od'] ? 'true' : 'false' ?>, '<?= esc($rec['confidence']) ?>', '<?= esc($rec['date_formatted'] . ' ' . $rec['time']) ?>', '<?= esc($rec['bbox_str'] ?? '') ?>')">
+                    <?php else: ?>
+                      <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center text-muted p-2 text-center">
+                        <i class="bi bi-truck fs-1 opacity-25"></i>
+                        <span class="small font-monospace mt-1"><?= esc($rec['bbox_str'] ?? 'Kotak [x1, y1, x2, y2]') ?></span>
+                      </div>
+                    <?php endif; ?>
+                    <div class="position-absolute top-0 start-0 m-2">
+                      <?= view('partials/detection_badge', ['result' => $rec['od_label']]) ?>
+                    </div>
+                  </div>
+                  <div class="mt-auto">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <span class="fw-bold text-dark small"><?= esc($rec['class_label']) ?></span>
+                      <span class="badge bg-light text-dark border font-monospace small"><?= esc($rec['confidence']) ?></span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 0.72rem;">
+                      <span><?= esc($rec['time']) ?></span>
+                      <span class="font-monospace"><?= esc($rec['id']) ?></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <div class="col-12 text-center py-4 text-muted small">
+              <i class="bi bi-clock-history me-1"></i> Menunggu deteksi truk berikutnya dari kamera uji...
+            </div>
+          <?php endif; ?>
+        </div>
+      </div>
+
       <!-- 3.3 Distribusi 5 kelas model -->
       <div class="card-plain mb-4">
         <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
@@ -296,12 +350,13 @@ $resetFilterUrl = base_url('dashboard') . '?' . http_build_query(['source' => $p
         <table class="table-detection">
           <thead>
             <tr>
-              <th style="width: 130px;">ID</th>
-              <th style="width: 150px;">Waktu (WITA)</th>
+              <th style="width: 120px;">ID</th>
+              <th style="width: 130px;">Cuplikan & Kotak</th>
+              <th style="width: 140px;">Waktu (WITA)</th>
               <th>Kamera</th>
               <th>Kelas Model</th>
-              <th style="width: 110px;">Confidence</th>
-              <th style="width: 150px;">Indikasi Model</th>
+              <th style="width: 100px;">Confidence</th>
+              <th style="width: 140px;">Indikasi Model</th>
             </tr>
           </thead>
           <tbody id="detectionTableBody">
@@ -309,6 +364,27 @@ $resetFilterUrl = base_url('dashboard') . '?' . http_build_query(['source' => $p
               <?php foreach ($table['data'] as $row): ?>
                 <tr>
                   <td><span class="fw-bold font-monospace text-dark small"><?= esc($row['id']) ?></span></td>
+                  <td>
+                    <?php if (!empty($row['image_url'])): ?>
+                      <div class="d-flex align-items-center gap-2">
+                        <img src="<?= esc($row['image_url']) ?>" alt="Foto Truk"
+                             class="rounded border"
+                             style="width: 50px; height: 38px; object-fit: cover; cursor: pointer;"
+                             title="Klik untuk perbesar foto truk"
+                             onclick="openTruckModal('<?= esc($row['image_url']) ?>', '<?= esc($row['id']) ?>', '<?= esc($row['class_label']) ?>', <?= $row['is_od'] ? 'true' : 'false' ?>, '<?= esc($row['confidence']) ?>', '<?= esc($row['date_formatted'] . ' ' . $row['time']) ?>', '<?= esc($row['bbox_str'] ?? '') ?>')">
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1" style="font-size: 0.68rem;"
+                                onclick="openTruckModal('<?= esc($row['image_url']) ?>', '<?= esc($row['id']) ?>', '<?= esc($row['class_label']) ?>', <?= $row['is_od'] ? 'true' : 'false' ?>, '<?= esc($row['confidence']) ?>', '<?= esc($row['date_formatted'] . ' ' . $row['time']) ?>', '<?= esc($row['bbox_str'] ?? '') ?>')">
+                          <i class="bi bi-zoom-in"></i>
+                        </button>
+                      </div>
+                    <?php elseif (!empty($row['bbox_str'])): ?>
+                      <span class="badge bg-light text-secondary border font-monospace small" title="Koordinat Bounding Box">
+                        <i class="bi bi-bounding-box me-1"></i><?= esc($row['bbox_str']) ?>
+                      </span>
+                    <?php else: ?>
+                      <span class="text-muted small">-</span>
+                    <?php endif; ?>
+                  </td>
                   <td>
                     <div class="fw-semibold text-dark small"><?= esc($row['date_formatted']) ?></div>
                     <div class="text-muted" style="font-size: 0.75rem;"><?= esc($row['time']) ?></div>
@@ -328,7 +404,7 @@ $resetFilterUrl = base_url('dashboard') . '?' . http_build_query(['source' => $p
               <?php endforeach; ?>
             <?php else: ?>
               <tr>
-                <td colspan="6" class="text-center py-5">
+                <td colspan="7" class="text-center py-5">
                   <div class="text-muted mb-2"><i class="bi bi-search fs-2 opacity-50" aria-hidden="true"></i></div>
                   <h6 class="fw-bold text-dark mb-1">Belum ada hasil yang sesuai</h6>
                   <p class="text-muted small mb-3">
@@ -387,6 +463,44 @@ $resetFilterUrl = base_url('dashboard') . '?' . http_build_query(['source' => $p
           </nav>
         </div>
       <?php endif; ?>
+    </div>
+
+    <!-- MODAL PREVIEW TRUK TERDETEKSI (KOTAK VISUAL BESAR) -->
+    <div class="modal fade" id="truckPreviewModal" tabindex="-1" aria-labelledby="truckPreviewModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header border-bottom">
+            <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="truckPreviewModalLabel">
+              <i class="bi bi-bounding-box text-primary"></i>
+              <span>Foto Cuplikan Truk Terdeteksi</span>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+          </div>
+          <div class="modal-body p-3 text-center bg-dark rounded-bottom">
+            <div class="mb-3 text-center">
+              <img id="modalTruckImage" src="" alt="Cuplikan Deteksi Truk" class="img-fluid rounded border border-secondary shadow" style="max-height: 480px;">
+            </div>
+            <div class="bg-white rounded p-3 text-start shadow-sm">
+              <div class="row g-2 align-items-center">
+                <div class="col-sm-6">
+                  <div class="small text-muted">ID Deteksi & Waktu:</div>
+                  <div class="fw-bold font-monospace text-dark" id="modalTruckId">-</div>
+                  <div class="small text-secondary" id="modalTruckTime">-</div>
+                </div>
+                <div class="col-sm-6 text-sm-end">
+                  <div class="small text-muted mb-1">Hasil Analisis Model:</div>
+                  <div id="modalTruckBadge" class="mb-1"></div>
+                  <div class="small fw-semibold text-dark" id="modalTruckClass">-</div>
+                </div>
+              </div>
+              <div class="border-top mt-2 pt-2 d-flex justify-content-between align-items-center small text-muted">
+                <span>Koordinat Kotak Deteksi: <strong class="font-monospace text-dark" id="modalTruckBbox">-</strong></span>
+                <span>Tingkat Kepastian: <strong class="font-monospace text-dark" id="modalTruckConf">-</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>

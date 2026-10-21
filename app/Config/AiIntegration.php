@@ -105,7 +105,7 @@ class AiIntegration extends BaseConfig
      *
      * @var list<string>
      */
-    public array $overlayOrigins = [];
+    public array $overlayOrigins = ['rizkiya_core', 'antigravity_worker_p52'];
 
     /** Batas validasi ingestion */
     public int $maxBodyBytes      = 65536;
@@ -118,7 +118,7 @@ class AiIntegration extends BaseConfig
     public int $staleAfterSec = 15;
 
     /** Metadata overlay lebih tua dari ini dibuang (detik) */
-    public float $overlayFreshSec = 2.0;
+    public float $overlayFreshSec = 3.5;
 
     /** Salinan core Rizkiya di proyek dan hash file asli yang diterima */
     public string $rizkiyaCorePath   = APPPATH . 'ThirdParty/RizkiyaCore/file-rizkiya.txt';

@@ -160,5 +160,14 @@ ai_worker/stop.flag
 __pycache__/
 *.pyc
 *.pt
+*.onnx
+cctv_snapshot.jpg
+
+#-------------------------
+# Uploads & Generated Media
+#-------------------------
+/public/uploads/detections/*
+!/public/uploads/detections/.gitkeep
+
 
 

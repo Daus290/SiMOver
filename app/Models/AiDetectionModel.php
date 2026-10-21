@@ -377,7 +377,7 @@ class AiDetectionModel extends Model
         $offset = ($page - 1) * $perPage;
 
         $rows = $builder
-            ->select('id, event_id, event_time, time_basis, received_time, camera_name, class_index, class_name, confidence, confidence_raw, track_id')
+            ->select('id, event_id, event_time, time_basis, received_time, camera_name, class_index, class_name, confidence, confidence_raw, track_id, bbox_x1, bbox_y1, bbox_x2, bbox_y2')
             ->orderBy('event_time', 'DESC')
             ->orderBy('id', 'DESC')
             ->limit($perPage, $offset)
@@ -390,6 +390,8 @@ class AiDetectionModel extends Model
             $dt = new DateTimeImmutable($r['event_time']);
             $confidence = $r['confidence_raw'] !== null ? (float) $r['confidence_raw'] : (float) $r['confidence'];
             $isOd = $class !== null && $this->ai->isOdClass($class['name']);
+            $hasBbox = $r['bbox_x1'] !== null && $r['bbox_x2'] !== null;
+            $hasImage = file_exists(FCPATH . 'uploads/detections/' . $r['event_id'] . '.jpg');
 
             $data[] = [
                 'id'             => 'DET-' . str_pad((string) $r['id'], 6, '0', STR_PAD_LEFT),
@@ -405,6 +407,10 @@ class AiDetectionModel extends Model
                 'confidence_raw' => $confidence,
                 'is_od'          => $isOd,
                 'od_label'       => $isOd ? 'Over Dimension' : 'Bukan OD',
+                'bbox'           => $hasBbox ? [(int) $r['bbox_x1'], (int) $r['bbox_y1'], (int) $r['bbox_x2'], (int) $r['bbox_y2']] : null,
+                'bbox_str'       => $hasBbox ? "[{$r['bbox_x1']}, {$r['bbox_y1']}, {$r['bbox_x2']}, {$r['bbox_y2']}]" : null,
+                'has_image'      => $hasImage,
+                'image_url'      => $hasImage ? base_url('uploads/detections/' . $r['event_id'] . '.jpg') : null,
             ];
         }
 
@@ -421,6 +427,52 @@ class AiDetectionModel extends Model
             'has_next'          => $page < $totalPages,
             'has_active_filter' => $hasFilter,
         ];
+    }
+
+    /**
+     * Ambil deteksi terbaru untuk cuplikan visual di dashboard.
+     */
+    public function getRecentDetections(string $origin, array $range, int $limit = 4): array
+    {
+        $rows = $this->scoped($origin, $range)
+            ->select('id, event_id, event_time, time_basis, camera_name, class_index, class_name, confidence, confidence_raw, track_id, bbox_x1, bbox_y1, bbox_x2, bbox_y2')
+            ->orderBy('event_time', 'DESC')
+            ->orderBy('id', 'DESC')
+            ->limit($limit)
+            ->get()
+            ->getResultArray();
+
+        $data = [];
+        foreach ($rows as $r) {
+            $class = $this->ai->classByIndex((int) $r['class_index']);
+            $dt = new DateTimeImmutable($r['event_time']);
+            $confidence = $r['confidence_raw'] !== null ? (float) $r['confidence_raw'] : (float) $r['confidence'];
+            $isOd = $class !== null && $this->ai->isOdClass($class['name']);
+            $hasBbox = $r['bbox_x1'] !== null && $r['bbox_x2'] !== null;
+            $hasImage = file_exists(FCPATH . 'uploads/detections/' . $r['event_id'] . '.jpg');
+
+            $data[] = [
+                'id'             => 'DET-' . str_pad((string) $r['id'], 6, '0', STR_PAD_LEFT),
+                'event_id'       => $r['event_id'],
+                'date_formatted' => $dt->format('d M Y'),
+                'time'           => $dt->format('H:i:s') . ' WITA',
+                'time_basis'     => $this->timeBasisLabel($r['time_basis']),
+                'camera_name'    => $r['camera_name'],
+                'camera_code'    => $this->ai->testCamera['code'],
+                'class_name'     => $r['class_name'],
+                'class_label'    => $class['label'] ?? $r['class_name'],
+                'confidence'     => number_format($confidence * 100, 1, ',', '.') . '%',
+                'confidence_raw' => $confidence,
+                'is_od'          => $isOd,
+                'od_label'       => $isOd ? 'Over Dimension' : 'Bukan OD',
+                'bbox'           => $hasBbox ? [(int) $r['bbox_x1'], (int) $r['bbox_y1'], (int) $r['bbox_x2'], (int) $r['bbox_y2']] : null,
+                'bbox_str'       => $hasBbox ? "[{$r['bbox_x1']}, {$r['bbox_y1']}, {$r['bbox_x2']}, {$r['bbox_y2']}]" : null,
+                'has_image'      => $hasImage,
+                'image_url'      => $hasImage ? base_url('uploads/detections/' . $r['event_id'] . '.jpg') : null,
+            ];
+        }
+
+        return $data;
     }
 
     private function timeBasisLabel(string $basis): string

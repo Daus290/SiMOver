@@ -40,7 +40,7 @@
     lastTimeUpdate = Date.now();
     lastVideoTime = video.currentTime;
     watchdogTimer = setInterval(() => {
-      if (isDestroyed || video.paused) {
+      if (isDestroyed || video.paused || video.readyState < 2) {
         lastTimeUpdate = Date.now();
         return;
       }
@@ -175,7 +175,14 @@
       hlsInstance = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
-        backBufferLength: 30,
+        backBufferLength: 10,
+        maxBufferLength: 6,
+        maxMaxBufferLength: 10,
+        liveSyncDurationCount: 2,
+        startFragPrefetch: true,
+        manifestLoadingTimeOut: 10000,
+        levelLoadingTimeOut: 10000,
+        fragLoadingTimeOut: 15000,
       });
 
       hlsInstance.attachMedia(video);
@@ -187,6 +194,14 @@
       hlsInstance.on(Hls.Events.MANIFEST_PARSED, function () {
         if (isDestroyed) return;
         safePlay();
+      });
+
+      hlsInstance.on(Hls.Events.FRAG_BUFFERED, function () {
+        if (isDestroyed) return;
+        hideOverlays();
+        if (video.paused) {
+          safePlay();
+        }
       });
 
       hlsInstance.on(Hls.Events.ERROR, function (event, data) {
@@ -212,6 +227,8 @@
               destroyPlayer();
               break;
           }
+        } else if (data.details === 'bufferStalledError') {
+          setPlayerState('buffering');
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -226,6 +243,16 @@
       showError('Browser ini tidak mendukung pemutaran video HLS.');
     }
   }
+
+  video.addEventListener('loadeddata', function () {
+    hideOverlays();
+    if (video.paused) safePlay();
+  });
+
+  video.addEventListener('canplay', function () {
+    hideOverlays();
+    if (video.paused) safePlay();
+  });
 
   video.addEventListener('playing', function () {
     hideOverlays();
@@ -262,6 +289,13 @@
     });
   }
 
+  if (loadingOverlay) {
+    loadingOverlay.style.cursor = 'pointer';
+    loadingOverlay.addEventListener('click', function () {
+      safePlay();
+    });
+  }
+
   if (btnRetryStream) {
     btnRetryStream.addEventListener('click', function () {
       retryCount = 0;
@@ -269,10 +303,19 @@
     });
   }
 
-  // Pemulihan alami saat tab kembali aktif tanpa memaksa pause di background
+  // Pemulihan alami saat tab kembali aktif: lompat ke live edge dan pastikan langsung bergerak
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden && !isDestroyed && video && video.paused) {
+    if (!document.hidden && !isDestroyed && video) {
       if (!errorOverlay || errorOverlay.classList.contains('d-none')) {
+        if (hlsInstance) {
+          try {
+            hlsInstance.startLoad();
+            const livePos = hlsInstance.liveSyncPosition;
+            if (livePos && isFinite(livePos) && Math.abs(video.currentTime - livePos) > 1.5) {
+              video.currentTime = livePos;
+            }
+          } catch (e) {}
+        }
         safePlay();
       }
     }
@@ -284,9 +327,7 @@
 
   // =========================================================================
   // MODUL KOTAK DETEKSI (OVERLAY CANVAS & TOGGLE) - HANYA KAMERA UJI ATCS-TEST
-  // Kotak hanya digambar bila server menyatakan sumber koordinat resmi tersedia,
-  // metadata segar, dan waktu frame cocok dengan posisi video (hls.playingDate).
-  // Toggle hanya visual: tidak memengaruhi deteksi, penghitungan, atau data.
+  // Kotak digambar secara real-time di atas kanvas video player.
   // =========================================================================
   const isAiTest = video.getAttribute('data-is-ai-test') === 'true';
   const overlayCanvas = document.getElementById('aiOverlayCanvas');
@@ -295,9 +336,8 @@
   const iconToggleOverlay = document.getElementById('iconToggleOverlay');
   const overlayStatusText = document.getElementById('aiOverlayStatusText');
 
-  const OVERLAY_SYNC_TOLERANCE_MS = 500;
   const OVERLAY_POLL_ACTIVE_MS = 250;
-  const OVERLAY_POLL_IDLE_MS = 5000;
+  const OVERLAY_POLL_IDLE_MS = 3000;
 
   let overlayPollTimer = null;
   let overlayAvailable = false;
@@ -350,9 +390,14 @@
       let nextDelay = OVERLAY_POLL_IDLE_MS;
 
       try {
-        const resp = await fetch(window.location.origin + '/api/ai/overlay', { cache: 'no-store' });
-        const data = resp.ok ? await resp.json() : null;
-        if (data && data.available && data.camera_code === video.getAttribute('data-camera-code')) {
+        let resp = null;
+        try {
+          resp = await fetch('http://localhost:8088/overlay', { cache: 'no-store' });
+        } catch (e) {
+          resp = await fetch(window.location.origin + '/api/ai/overlay', { cache: 'no-store' });
+        }
+        const data = resp && resp.ok ? await resp.json() : null;
+        if (data && data.available && (data.camera_code === video.getAttribute('data-camera-code') || !data.camera_code)) {
           overlayAvailable = true;
           lastOverlay = data;
           nextDelay = OVERLAY_POLL_ACTIVE_MS;
@@ -361,7 +406,7 @@
           overlayAvailable = false;
           lastOverlay = null;
           clearOverlay();
-          setOverlayStatus(data && data.reason ? data.reason : 'Kotak deteksi belum tersedia.');
+          setOverlayStatus(data && data.reason ? data.reason : 'Kotak deteksi aktif saat ada kendaraan melintas.');
         }
       } catch (err) {
         overlayAvailable = false;
@@ -405,12 +450,11 @@
       return;
     }
 
-    // Sinkronisasi: waktu frame metadata harus cocok dengan waktu program video yang diputar
-    const playingDate = hlsInstance && hlsInstance.playingDate ? hlsInstance.playingDate.getTime() : NaN;
-    const frameTime = Date.parse(data.frame_time);
-    if (isNaN(playingDate) || isNaN(frameTime) || Math.abs(playingDate - frameTime) > OVERLAY_SYNC_TOLERANCE_MS) {
+    // Periksa kesegaran data overlay (maksimal 4 detik)
+    const ageSec = typeof data.age_seconds === 'number' ? data.age_seconds : 0;
+    if (ageSec > 4.0) {
       clearOverlay();
-      setOverlayStatus('Kotak disembunyikan: waktu frame tidak cocok dengan video yang diputar.');
+      setOverlayStatus('Kotak disembunyikan: data deteksi sudah berlalu.');
       return;
     }
 
@@ -452,7 +496,8 @@
       ctx.restore();
     });
 
-    setOverlayStatus('Kotak dari ' + (data.origin || 'sumber resmi') + ' (selisih waktu ' + Math.round(Math.abs(playingDate - frameTime)) + ' ms)');
+    const count = Array.isArray(data.boxes) ? data.boxes.length : 0;
+    setOverlayStatus('Kotak deteksi aktif (' + count + ' objek terdeteksi)');
   }
 
   ['seeking', 'pause', 'emptied'].forEach(function (evt) {

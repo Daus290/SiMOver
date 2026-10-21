@@ -328,3 +328,21 @@
   background-color: #F8FAFC;
   cursor: not-allowed;
 }
+
+/* 8. Galeri Cuplikan Truk Terdeteksi */
+.detection-thumb-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.detection-thumb-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+.hover-zoom {
+  transition: transform 0.2s ease;
+}
+.hover-zoom:hover {
+  transform: scale(1.04);
+}
+.cursor-pointer {
+  cursor: pointer;
+}

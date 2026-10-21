@@ -20,7 +20,20 @@ class VehicleDetector:
         self.conf = conf
         logger.info(f"Menginisialisasi YOLO detector: {self.model_name} dengan confidence: {self.conf}")
         self.model = YOLO(self.model_name)
-        logger.info("YOLO detector siap.")
+        # Warm-up tracker & model pada frame dummy agar tidak ada lonjakan latensi di frame awal
+        try:
+            dummy_frame = np.zeros((480, 480, 3), dtype=np.uint8)
+            self.model.track(
+                source=dummy_frame,
+                imgsz=480,
+                persist=True,
+                classes=VEHICLE_COCO_CLASSES,
+                tracker="bytetrack.yaml",
+                verbose=False
+            )
+        except Exception as e:
+            logger.debug(f"Pemanasan detector: {e}")
+        logger.info("YOLO detector & tracker siap.")
 
     def detect_and_track(self, frame: np.ndarray) -> List[Dict[str, Any]]:
         """
@@ -32,9 +45,10 @@ class VehicleDetector:
 
         h, w = frame.shape[:2]
 
-        # Jalankan tracking dengan ByteTrack
+        # Jalankan tracking dengan ByteTrack pada resolusi optimal 480px untuk akselerasi CPU
         results = self.model.track(
             source=frame,
+            imgsz=480,
             persist=True,
             classes=VEHICLE_COCO_CLASSES,
             conf=self.conf,
@@ -69,8 +83,8 @@ class VehicleDetector:
             box_w = x2 - x1
             box_h = y2 - y1
 
-            # Filter kendaraan terlalu kecil (noise atau kendaraan sangat jauh)
-            if box_w < 50 or box_h < 40:
+            # Filter kendaraan terlalu kecil (hanya abaikan jika noise titik kecil < 35x28)
+            if box_w < 35 or box_h < 28:
                 continue
 
             # Centroid kendaraan

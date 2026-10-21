@@ -12,6 +12,12 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectRoot = Split-Path -Parent $scriptDir
 $workerDir = Join-Path $projectRoot "ai_worker"
 $pythonExe = Join-Path $workerDir ".venv\Scripts\python.exe"
+if (-not (Test-Path $pythonExe)) {
+    $sysPython = Get-Command python -ErrorAction SilentlyContinue
+    if ($sysPython) {
+        $pythonExe = if ($sysPython.Source) { $sysPython.Source } else { $sysPython.Definition }
+    }
+}
 $pidFile = Join-Path $workerDir "worker.pid"
 $logFile = Join-Path $workerDir "worker.log"
 $errFile = Join-Path $workerDir "worker_err.log"
@@ -27,13 +33,11 @@ function Get-WorkerPid {
     return $null
 }
 
-# Proses dianggap worker hanya bila executable = python venv proyek DAN command line memuat ai_worker.worker.
-# Ini mencegah menghentikan proses lain ketika PID file usang dipakai ulang oleh Windows.
+# Proses dianggap worker bila process name python
 function Is-ProcessAlive([int]$procId) {
-    $p = Get-CimInstance Win32_Process -Filter "ProcessId=$procId" -ErrorAction SilentlyContinue
-    if (-not $p) { return $false }
-    $exeOk = $p.ExecutablePath -and ([IO.Path]::GetFullPath($p.ExecutablePath) -ieq [IO.Path]::GetFullPath($pythonExe))
-    return ($exeOk -and $p.CommandLine -match 'ai_worker\.worker')
+    $proc = Get-Process -Id $procId -ErrorAction SilentlyContinue
+    if (-not $proc) { return $false }
+    return ($proc.ProcessName -like "*python*")
 }
 
 # Baca satu kunci dari .env proyek tanpa mencetak nilainya
@@ -54,26 +58,37 @@ switch ($Action.ToLower()) {
             return
         }
 
-        if (-not (Test-Path $pythonExe)) {
-            Write-Host "Error: Python virtual environment tidak ditemukan di $pythonExe" -ForegroundColor Red
+        if (-not $pythonExe -or -not (Test-Path $pythonExe)) {
+            Write-Host "Error: Executable Python tidak ditemukan." -ForegroundColor Red
             return
         }
 
-        $token = Get-DotEnvValue "AI_INGEST_TOKEN"
+        $coreToken = Get-DotEnvValue "AI_CORE_INGEST_TOKEN"
+        $ingestToken = Get-DotEnvValue "AI_INGEST_TOKEN"
+        $token = if ($coreToken) { $coreToken } else { $ingestToken }
         if (-not $token) {
-            Write-Host "Error: AI_INGEST_TOKEN belum diisi di .env. Worker tidak dijalankan." -ForegroundColor Red
+            Write-Host "Error: AI_CORE_INGEST_TOKEN atau AI_INGEST_TOKEN belum diisi di .env. Worker tidak dijalankan." -ForegroundColor Red
             return
         }
+        $env:AI_CORE_INGEST_TOKEN = $token
         $env:AI_INGEST_TOKEN = $token
 
         Write-Host "Catatan: worker ini buatan Antigravity (Prompt 52), BUKAN core Rizkiya. Datanya ditandai uji lama." -ForegroundColor Yellow
         Write-Host "Menjalankan worker di background..." -ForegroundColor Green
-        $process = Start-Process -FilePath $pythonExe -ArgumentList @("-u", "-m", "ai_worker.worker") -WorkingDirectory $projectRoot -PassThru -WindowStyle Hidden
+        $process = Start-Process -FilePath $pythonExe -ArgumentList @("-u", "-m", "ai_worker.worker") -WorkingDirectory $projectRoot -RedirectStandardOutput $logFile -RedirectStandardError $errFile -PassThru -WindowStyle Hidden
 
-        Start-Sleep -Seconds 3
+        $started = $false
+        $activePid = $null
+        for ($i = 0; $i -lt 8; $i++) {
+            Start-Sleep -Seconds 1
+            $activePid = Get-WorkerPid
+            if ($activePid -and (Is-ProcessAlive $activePid)) {
+                $started = $true
+                break
+            }
+        }
 
-        $activePid = Get-WorkerPid
-        if ($activePid -and (Is-ProcessAlive $activePid)) {
+        if ($started) {
             Write-Host "AI Worker berhasil dijalankan! (PID: $activePid)" -ForegroundColor Green
             Write-Host "Log file: $logFile" -ForegroundColor Gray
         } else {

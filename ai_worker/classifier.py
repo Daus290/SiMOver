@@ -126,11 +126,16 @@ class VehicleClassifier:
 
         input_tensor = self.preprocess(crop_bgr)
         outputs = self.session.run([self.output_name], {self.input_name: input_tensor})
-        logits = outputs[0][0]
+        raw_output = outputs[0][0]
 
-        # Hitung Softmax yang stabil secara numerik
-        exp_logits = np.exp(logits - np.max(logits))
-        probabilities = exp_logits / np.sum(exp_logits)
+        # Model best_yolo_cls.onnx sudah menyertakan Softmax di layer output0.
+        # Hindari double-softmax agar confidence asli tidak terdistorsi.
+        prob_sum = float(np.sum(raw_output))
+        if 0.98 <= prob_sum <= 1.02:
+            probabilities = raw_output
+        else:
+            exp_logits = np.exp(raw_output - np.max(raw_output))
+            probabilities = exp_logits / np.sum(exp_logits)
 
         best_index = int(np.argmax(probabilities))
         best_confidence = float(probabilities[best_index])
