@@ -1,13 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "outputDirectory": "public",
+  "buildCommand": "rm -rf dist && cp -R public dist && rm -f dist/index.php dist/.htaccess",
+  "outputDirectory": "dist",
   "regions": ["sin1"],
   "functions": {
     "api/index.php": {
       "runtime": "vercel-php@0.8.0",
       "maxDuration": 30,
-      "excludeFiles": "{.git/**,.vscode/**,**/node_modules/**,ai_worker/**,tools/**,database/**,docs/**,scripts/**,tests/**,writable/**,public/assets/**,public/uploads/**,.env*,env,*.md,*.txt,*.ps1,*.bat,builds,vercel.json,.vercelignore,**/*.{sql,zip,onnx,pt,log}}"
+      "excludeFiles": "{.git/**,.vscode/**,dist/**,**/node_modules/**,ai_worker/**,tools/**,database/**,docs/**,scripts/**,tests/**,writable/**,public/assets/**,public/uploads/**,.env*,env,*.md,*.txt,*.ps1,*.bat,builds,vercel.json,.vercelignore,**/*.{sql,zip,onnx,pt,log}}"
     }
   },
   "redirects": [
