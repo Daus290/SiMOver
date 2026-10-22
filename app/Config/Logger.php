@@ -3,6 +3,7 @@
 namespace Config;
 
 use CodeIgniter\Config\BaseConfig;
+use CodeIgniter\Log\Handlers\ErrorlogHandler;
 use CodeIgniter\Log\Handlers\FileHandler;
 use CodeIgniter\Log\Handlers\HandlerInterface;
 
@@ -148,4 +149,20 @@ class Logger extends BaseConfig
         //     'messageType' => 0,
         // ],
     ];
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        // Di Vercel folder writable hanya /tmp sementara; kirim log ke error_log()
+        // agar muncul di Runtime Logs. Lokal tetap memakai FileHandler.
+        if (getenv('VERCEL') === '1') {
+            $this->handlers = [
+                ErrorlogHandler::class => [
+                    'handles'     => $this->handlers[FileHandler::class]['handles'],
+                    'messageType' => ErrorlogHandler::TYPE_OS,
+                ],
+            ];
+        }
+    }
 }

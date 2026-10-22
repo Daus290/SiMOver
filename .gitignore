@@ -87,7 +87,7 @@ php_errors.log
 #-------------------------
 # Composer
 #-------------------------
-vendor/
+/vendor/
 
 #-------------------------
 # IDE / Development Files
@@ -120,7 +120,8 @@ _modules/*
 *.sublime-workspace
 *.sublime-project
 .phpintel
-/api/
+/api/*
+!/api/index.php
 
 # Visual Studio Code
 .vscode/
@@ -171,3 +172,11 @@ cctv_snapshot.jpg
 
 
 
+# Tautan proyek lokal Vercel CLI (vercel link) dan env hasil vercel env pull
+/.vercel/
+.env.local
+.env.*.local
+
+# Trusted JS inference runtime dependencies & local backups
+/scripts/rizkiya-runtime/node_modules/
+/writable/backups/

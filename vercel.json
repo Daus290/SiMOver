@@ -1,0 +1,30 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "outputDirectory": "public",
+  "regions": ["sin1"],
+  "functions": {
+    "api/index.php": {
+      "runtime": "vercel-php@0.8.0",
+      "maxDuration": 30,
+      "excludeFiles": "{.git/**,.vscode/**,**/node_modules/**,ai_worker/**,tools/**,database/**,docs/**,scripts/**,tests/**,writable/**,public/assets/**,public/uploads/**,.env*,env,*.md,*.txt,*.ps1,*.bat,builds,vercel.json,.vercelignore,**/*.{sql,zip,onnx,pt,log}}"
+    }
+  },
+  "redirects": [
+    { "source": "/index.php", "destination": "/", "permanent": false },
+    { "source": "/index.php/:path*", "destination": "/:path*", "permanent": false },
+    { "source": "/.htaccess", "destination": "/", "permanent": false }
+  ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index.php" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Robots-Tag", "value": "noindex" }
+      ]
+    }
+  ]
+}

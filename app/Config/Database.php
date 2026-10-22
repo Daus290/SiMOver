@@ -200,5 +200,21 @@ class Database extends Config
         if (ENVIRONMENT === 'testing') {
             $this->defaultGroup = 'tests';
         }
+
+        // Database eksternal (staging cloud) yang mewajibkan TLS: DB_SSL=true.
+        // DB_SSL_CA opsional, path CA bundle; bila kosong dicari di lokasi umum Linux.
+        if (env('DB_SSL') === true) {
+            $ca = (string) env('DB_SSL_CA', '');
+            if ($ca === '') {
+                foreach (['/etc/pki/tls/certs/ca-bundle.crt', '/etc/ssl/certs/ca-certificates.crt', '/etc/ssl/cert.pem'] as $candidate) {
+                    if (is_file($candidate)) {
+                        $ca = $candidate;
+                        break;
+                    }
+                }
+            }
+
+            $this->default['encrypt'] = ['ssl_verify' => true, 'ssl_ca' => $ca];
+        }
     }
 }

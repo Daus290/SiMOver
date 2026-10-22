@@ -1,0 +1,40 @@
+# File yang tidak diunggah ke Vercel (berlaku pasti untuk Vercel CLI).
+# Untuk impor GitHub, file gitignored memang tidak ada di repo; pembatas
+# utama bundle function ada di vercel.json -> functions.excludeFiles.
+
+# Rahasia dan konfigurasi lokal
+.env
+.env.*
+env
+
+# Pengaturan editor/agen lokal
+/.vscode
+/.claude
+
+# Composer dipasang ulang oleh runtime vercel-php saat build
+/vendor
+
+# Runtime lokal, AI, video, cadangan
+/writable
+/ai_worker
+/tools
+/scripts
+/scratch
+/build
+/builds
+/backup_prompt*
+/start-system.ps1
+/start-ai.bat
+node_modules
+
+# Data dan dump
+/database
+*.sql
+*.zip
+*.onnx
+*.pt
+*.log
+
+# Pengujian
+/tests
+/phpunit*.xml
