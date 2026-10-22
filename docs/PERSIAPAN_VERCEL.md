@@ -3,9 +3,56 @@
 Disusun 22 Oktober 2026 (WITA), Prompt 63, ditinjau ulang di Prompt 64. Dasar: branch `rizkiya`, HEAD `b2d6a2c`.
 Dokumen ini tidak memuat rahasia. Nilai `.env`, token, password, dan kredensial NVR tidak ditulis di sini.
 
-**Status: siap mencoba deployment, belum pernah di-deploy.** Belum ada commit, push, proyek Vercel,
-database cloud, maupun gateway HTTPS kantor. Build di Vercel, akses dari jaringan luar, dan pemutaran video
-**belum diuji**.
+**Status (Prompt 66, 22 Okt 2026 ±12.10 WITA): halaman sudah ter-hosting dan dirender sebagai HTML.**
+Database staging dan gateway kantor belum ada. Video ATCS ditolak upstream untuk origin Vercel (bagian 0).
+
+---
+
+## 0. Hasil deployment nyata (Prompt 66)
+
+| Hal | Nilai |
+|---|---|
+| Website | https://simover.vercel.app |
+| Proyek / scope Vercel | `simover` / `daus11` (sudah ada; tidak membuat proyek baru) |
+| Branch sumber | `test-hosting` di `Daus290/SiMOver` |
+| Deployment yang diuji | https://vercel.com/daus11/simover/3xRMuvcYwuxA1KiFQpYLaZpxz8Rp, commit `f28e471`, status GitHub "Vercel: success, Deployment has completed" |
+| Deployment sebelumnya | https://vercel.com/daus11/simover/3APiHjGukzwdQnJaWyaRxz5gZgDi, commit `8384b2b`, success, tetapi `/` masih terunduh (lihat di bawah) |
+
+Bukti hubungan SHA → deployment diambil dari commit status GitHub yang ditulis integrasi Vercel. Dashboard dan
+Build Logs Vercel **tidak** dibuka karena tidak ada akses login Vercel di sesi ini.
+
+**Kronologi perbaikan**
+1. Sebelum: deployment `main` (`c698a04`) menyajikan `public/` sebagai file statis. `/` → `200 application/x-httpd-php`
+   berisi source `public/index.php` (terunduh), `/dashboard` → 404 Vercel.
+2. Commit `8384b2b` (file persiapan) → function PHP berjalan: `/live-cctv`, `/peta-cctv`, `/tentang-dishub` → HTML,
+   `/api/ai/overlay` → JSON. Namun `/` **masih** `application/x-httpd-php`, karena Vercel memakai `index.php` di folder
+   output statis sebagai indeks direktori sebelum rewrite.
+3. Commit `f28e471` (`vercel.json`): `buildCommand` menyalin `public/` ke `dist/` **tanpa** `index.php` dan `.htaccess`,
+   `outputDirectory: dist`, `dist/**` dikecualikan dari bundle. Hasilnya `/` → `200 text/html`, Beranda dirender.
+
+**Hasil uji HTTP (`curl`, bukan browser) pada `simover.vercel.app` setelah `f28e471`**
+
+| Pemeriksaan | Hasil |
+|---|---|
+| `/` | 200 `text/html`, tanpa `Content-Disposition`, judul "Beranda - Sistem Monitoring Over Dimension Kota Banjarbaru" |
+| `/live-cctv`, `/peta-cctv`, `/tentang-dishub`, `/tentang-over-dimension` | 200 `text/html`, judul halaman sesuai |
+| URL internal di HTML Beranda | 31 URL, semua `https://simover.vercel.app/...`; 0 rujukan `localhost` |
+| Aset (CSS, JS, font `woff2`, ikon, gambar, `public/assets/vendor`, gambar Leaflet, CSS `@import`) | 36 dari 36 URL → 200 dengan tipe konten sesuai |
+| `/cctv-snapshot/BJB-BRIMOB-F1` | 200 `image/svg+xml` (gambar pengganti; relay kantor tidak ada) |
+| `/api/ai/overlay` | 200 JSON |
+| `/dashboard`, `/api/ai/status` | **500** (halaman error produksi), sesuai dugaan: database staging belum ada |
+| `/halaman-tidak-ada` | 404 halaman CodeIgniter |
+| `/index.php`, `/index.php/live-cctv`, `/.htaccess` | 307 ke `/` atau path bersih, bukan isi file |
+| `/.env`, `/.env.example`, `/.git/config`, `/.git/HEAD`, `/app/Config/App.php`, `/app/Config/Database.php` | 404 dari aplikasi |
+| `/vendor/autoload.php`, `/composer.json`, `/api/index.php`, dump SQL, `ai_worker`, ZIP FFmpeg, dll. | 403 **Vercel Security Checkpoint**, tanpa source PHP. Lihat catatan |
+
+Catatan Security Checkpoint: setelah ±70 request `curl` beruntun, firewall Vercel menampilkan halaman tantangan
+"Vercel Security Checkpoint" (403) untuk semua path dari IP penguji, termasuk `/`. Ini mitigasi bot milik Vercel,
+bukan error aplikasi. Pengaturannya tidak diubah. Akibatnya path di baris terakhir hanya terbukti **tidak mengembalikan
+source**, belum terbukti respons aplikasinya. Uji ulang dengan browser setelah beberapa saat.
+
+**Belum diuji:** tampilan visual di browser (layout, console, network), akses dari HP/jaringan luar, Build Logs
+(baris Composer/`vercel-php`) dan isi halaman Settings proyek di dashboard Vercel.
 
 ---
 
@@ -84,7 +131,7 @@ deployment, dan apakah proteksi bawaan akun Anda Standard atau lainnya. Bagian y
 
 | File | Status | Alasan |
 |---|---|---|
-| `vercel.json` | baru | Runtime `vercel-php@0.8.0`; output statis `public/`; route lain ke `api/index.php`; `excludeFiles` (lihat bagian 6); region `sin1`; `maxDuration` 30; header `nosniff` + `noindex`; redirect `/index.php`, `/index.php/*`, `/.htaccess` |
+| `vercel.json` | baru | Runtime `vercel-php@0.8.0`; output statis `dist/` = salinan `public/` tanpa `index.php`/`.htaccess` (sejak `f28e471`); route lain ke `api/index.php`; `excludeFiles` (lihat bagian 6); region `sin1`; `maxDuration` 30; header `nosniff` + `noindex`; redirect `/index.php`, `/index.php/*`, `/.htaccess` |
 | `api/index.php` | baru | Entrypoint Vercel: `SCRIPT_NAME=/index.php` (agar `/api/ai/...` tidak terpotong), writable ke `/tmp`, env Vercel disalin ke `$_ENV`, base URL = `app_baseURL` atau `https://` + domain yang diminta (cadangan `VERCEL_*_URL`) |
 | `.vercelignore` | baru | Pembatas unggahan CLI: `.env*`, `/vendor`, `writable`, AI, `tools`, dump, model, log, `.vscode` |
 | `.gitignore` | ubah | `/api/` → `/api/*` + `!/api/index.php` (sebelumnya entrypoint ikut diabaikan); tambah `/.vercel/`, `.env.local`, `.env.*.local`. Perubahan lama (`/vendor/`, `node_modules`, `writable/backups`) dipertahankan |
@@ -102,7 +149,7 @@ Tidak diubah: tampilan, route, controller, model, AI core, kamera, sumber stream
 | **GitHub (setelah commit berikutnya)** | Semua file terlacak + file di bagian 11. Tidak termasuk `.env`, Composer `/vendor`, `writable/` (kecuali file kosong bawaan), model, log |
 | **Saat build Vercel** | Hasil clone repo + `vendor/` yang dipasang Composer |
 | **Bundle function** | Semua file di folder build **dikurangi** `excludeFiles`. Simulasi lokal: ±909 file, ±5,1 MB (`vendor` 4,6 MB, `app` 0,5 MB). Yang **tidak** masuk: `.git`, `.env*`, `ai_worker`, `tools` (ZIP FFmpeg), `database` (dump), `writable`, `tests`, `scripts`, `docs`, `public/assets`, `public/uploads`, `*.sql/zip/onnx/pt/log`, `*.md`, `*.txt` di root. File wajib (`api/index.php`, `app/`, `app/ThirdParty/RizkiyaCore/file-rizkiya.txt`, `vendor/`) ada |
-| **Dapat diakses publik** | Hanya isi `public/` sebagai file statis, ditambah respons CodeIgniter. `public/index.php` dan `public/.htaccess` dialihkan ke `/` oleh `redirects`. Path lain (`/app/...`, `/vendor/...`, `/.env`, `/composer.json`) tidak punya file statis, sehingga diteruskan ke CodeIgniter dan dijawab 404 |
+| **Dapat diakses publik** | Hanya isi `dist/` (salinan `public/` tanpa `index.php` dan `.htaccess`) sebagai file statis, ditambah respons CodeIgniter. `/index.php` dan `/.htaccess` dialihkan ke `/` oleh `redirects`. Path lain (`/app/...`, `/vendor/...`, `/.env`, `/composer.json`) tidak punya file statis, sehingga diteruskan ke CodeIgniter dan dijawab 404 |
 
 Catatan: `excludeFiles` mengganti daftar default runtime (`node_modules/**`, `vercel.json`, `.vercelignore`, dll.),
 jadi pola tersebut ditulis ulang di `vercel.json`. Panjang pola 241 dari batas skema 256 karakter.
@@ -124,6 +171,12 @@ tidak menentukan lingkungan Vercel. Lingkungan Vercel (Production/Preview) diten
 deployment pertama di bagian 8. Jangan isi `vivotek.*` atau `AI_INGEST_TOKEN` di Vercel.
 
 ## 8. Alur utama deployment percobaan
+
+> **Diperbarui Prompt 66:** alur yang benar-benar dipakai adalah proyek `simover` (scope `daus11`) yang sudah ada,
+> dengan production branch `test-hosting` (sudah dipilih pengguna di dashboard). Langkahnya: commit file persiapan
+> ke `test-hosting`, push fast-forward, lalu Vercel otomatis membuat deployment dari commit itu (bagian 0). Proyek
+> `simover-staging` dan branch `staging-vercel` di bawah **tidak dibuat**; uraian berikut disimpan sebagai rencana awal.
+> Pembaruan berikutnya cukup: commit ke `test-hosting` → `git push origin test-hosting` → cek status/URL deployment.
 
 **Mengapa tidak langsung "Import" dari New Project:** menurut dokumentasi, impor langsung membuat deployment
 pertama (selalu Production) dari production branch, yaitu `main`, dan tidak ada pilihan branch yang terdokumentasi
@@ -221,11 +274,24 @@ Batas pemeriksaan bila alamat dilindungi:
 
 ### ATCS Banjarmasin: empat tingkat bukti
 
-Uji baca-saja dari laptop ini, 22 Okt 2026 ±11.28 WITA, `curl` ke `https://atcs.banjarmasinkota.go.id`:
+**Uji ulang Prompt 66, 22 Okt 2026 ±12.12 WITA, `curl` dari laptop ini ke `https://atcs.banjarmasinkota.go.id`:**
 
 | Tingkat | Status |
 |---|---|
-| 1. Halaman Live CCTV dirender | Lokal: 200 (simulasi adapter). Vercel: **belum diuji** |
+| 1. Halaman Live CCTV dirender | **Berhasil** di `https://simover.vercel.app/live-cctv` (200 HTML, HTTP saja) |
+| 2. Playlist HLS | Tanpa `Origin`: **200** (ATCS-01 `index.m3u8` → `video1_stream.m3u8`; ATCS-02 `video1_stream.m3u8`), `Access-Control-Allow-Origin: *`. Dengan `Origin: https://simover.vercel.app`: **403** (HTML, tanpa header CORS) |
+| 3. Segmen HLS | Tanpa `Origin`: init `.mp4` 200 (683 B) dan segmen 200 (±1,5 MB per 3 detik, ±4 Mbps). Dengan `Origin: https://simover.vercel.app`: **403** |
+| 4. Video bergerak di browser | **Belum diuji di browser.** hls.js mengirim `Origin` pada request lintas domain, sehingga dari hasil tingkat 2–3 pemutaran di `simover.vercel.app` kemungkinan besar gagal |
+
+Kesimpulan: upstream ATCS menolak origin `simover.vercel.app`. Ini **bukan kegagalan hosting halaman**. Jalan keluarnya
+perlu keputusan terpisah: izin origin dari pengelola ATCS, atau gateway yang disepakati. Vercel tidak dijadikan proxy
+video, karena ±4 Mbps per kamera per penonton (±43 GB per 24 jam) melampaui kuota Hobby 100 GB per bulan.
+
+Uji sebelumnya (Prompt 64, ±11.28 WITA) untuk perbandingan:
+
+| Tingkat | Status |
+|---|---|
+| 1. Halaman Live CCTV dirender | Lokal: 200 (simulasi adapter). Vercel: belum diuji saat itu |
 | 2. Playlist HLS dapat diambil | **Gagal saat diuji.** `.../stream/<kode>/index.m3u8` (ATCS-01) dan `video1_stream.m3u8` (ATCS-02): **404** tanpa `Origin` maupun dengan `Origin: https://atcs.banjarmasinkota.go.id`; **403** (HTML) dengan `Origin: http://localhost:8081` dan dengan contoh `Origin: https://contoh-simover.vercel.app` (hipotetis). Respons 404 tanpa Origin membawa `Access-Control-Allow-Origin: *`; respons 403 tidak membawa header CORS |
 | 3. Segmen HLS dari origin yang benar | **Belum dapat diuji** (playlist tidak tersedia) |
 | 4. Video bergerak di browser dari jaringan luar | **Belum diuji.** Berdasarkan hasil 403 untuk origin luar, kemungkinan besar gagal dari domain Vercel kecuali upstream mengizinkan origin tersebut |
@@ -362,5 +428,7 @@ atau proses lain.
 7. `public/assets/vendor/` bukan buatan persiapan ini, jadi jangan dihapus. Jika sudah menjalankan `vercel link`,
    folder `.vercel/` (berisi `project.json` dan README) boleh dihapus setelah isinya diperiksa.
 
-Jika sudah di-commit: `git revert <SHA-commit-persiapan>`. Proyek Vercel yang tidak dipakai dihapus dari
+Persiapan ini **sudah di-commit** di `test-hosting` (Prompt 66): `8384b2b` (file persiapan), `f28e471` (perbaikan
+`dist/`), ditambah commit dokumentasi. Untuk membatalkan, jalankan di branch `test-hosting`:
+`git revert f28e471 8384b2b`, lalu push normal. Jangan reset atau force push. Branch `main` dan `rizkiya` tidak tersentuh. Proyek Vercel yang tidak dipakai dihapus dari
 Settings → Delete Project (konfirmasi), sebagai keputusan Anda.
