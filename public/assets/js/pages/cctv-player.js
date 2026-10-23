@@ -8,7 +8,10 @@
   const video = document.getElementById('cctvVideoPlayer');
   if (!video) return;
 
-  const streamUrl = video.getAttribute('data-stream-url');
+  const primaryStreamUrl = video.getAttribute('data-stream-url');
+  const fallbackStreamUrl = video.getAttribute('data-fallback-url');
+  let streamUrl = primaryStreamUrl || fallbackStreamUrl;
+  let isUsingFallback = false;
   if (!streamUrl) return;
 
   const isVivotekCam = video.getAttribute('data-is-vivotek') === 'true';
@@ -175,14 +178,20 @@
       hlsInstance = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
-        backBufferLength: 10,
-        maxBufferLength: 6,
-        maxMaxBufferLength: 10,
-        liveSyncDurationCount: 2,
+        backBufferLength: 30,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        maxBufferSize: 60 * 1000 * 1000,
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 10,
+        liveDurationInfinity: true,
         startFragPrefetch: true,
-        manifestLoadingTimeOut: 10000,
-        levelLoadingTimeOut: 10000,
-        fragLoadingTimeOut: 15000,
+        highBufferWatchdogPeriod: 2,
+        nudgeOffset: 0.1,
+        nudgeMaxRetry: 5,
+        manifestLoadingTimeOut: 15000,
+        levelLoadingTimeOut: 15000,
+        fragLoadingTimeOut: 20000,
       });
 
       hlsInstance.attachMedia(video);
@@ -209,8 +218,19 @@
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
+              if (!isUsingFallback && fallbackStreamUrl && fallbackStreamUrl !== streamUrl) {
+                console.warn('Aliran stream utama gagal, berpindah ke stream upstream alternatif:', fallbackStreamUrl);
+                isUsingFallback = true;
+                streamUrl = fallbackStreamUrl;
+                retryCount = 0;
+                setPlayerState('connecting');
+                hlsInstance.loadSource(streamUrl);
+                hlsInstance.startLoad();
+                return;
+              }
               if (retryCount < maxRetries) {
                 retryCount++;
+                console.warn(`HLS Network error, retrying (${retryCount}/${maxRetries})...`);
                 setPlayerState('connecting');
                 hlsInstance.startLoad();
               } else {
@@ -228,7 +248,10 @@
               break;
           }
         } else if (data.details === 'bufferStalledError') {
-          setPlayerState('buffering');
+          // Tangani buffer stalled dengan mencoba nudge playhead maju sedikit
+          if (video && !video.paused && video.readyState >= 2) {
+            try { video.currentTime += 0.15; } catch (e) {}
+          }
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -266,6 +289,20 @@
 
   video.addEventListener('waiting', function () {
     setPlayerState('buffering');
+    // Auto-skip celah timestamp kecil antar segmen fMP4 (gap jumping) agar tidak freeze
+    setTimeout(function () {
+      if (video && !video.paused && video.readyState < 3) {
+        try {
+          const b = video.buffered;
+          for (let i = 0; i < b.length; i++) {
+            if (b.start(i) > video.currentTime && (b.start(i) - video.currentTime) < 0.6) {
+              video.currentTime = b.start(i) + 0.05;
+              break;
+            }
+          }
+        } catch (e) {}
+      }
+    }, 250);
   });
 
   video.addEventListener('timeupdate', function () {
@@ -311,7 +348,7 @@
           try {
             hlsInstance.startLoad();
             const livePos = hlsInstance.liveSyncPosition;
-            if (livePos && isFinite(livePos) && Math.abs(video.currentTime - livePos) > 1.5) {
+            if (livePos && isFinite(livePos) && Math.abs(video.currentTime - livePos) > 12) {
               video.currentTime = livePos;
             }
           } catch (e) {}

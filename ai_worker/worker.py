@@ -313,12 +313,12 @@ class SimoverAiWorker:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="SiMover AI Multi-Camera Worker")
+    parser = argparse.ArgumentParser(description="SiMover AI Worker")
     parser.add_argument(
         "--camera",
         type=str,
-        default="all",
-        help="Pilihan kamera: 'all' (kedua CCTV), 'soebardjo' (ATCS-01), atau 'sultan_adam' (ATCS-02)"
+        default="soebardjo",
+        help="Pilihan kamera: 'soebardjo' (ATCS-01, default tunggal), 'all' (kedua CCTV), atau 'sultan_adam' (ATCS-02)"
     )
     parser.add_argument("--max-frames", type=int, default=0, help="Batas frame maksimum per kamera (0 = kontinu)")
     args = parser.parse_args()

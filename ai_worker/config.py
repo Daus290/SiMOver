@@ -67,7 +67,7 @@ STREAM_URL = CAMERAS["jalan_gubernur_soebardjo_jembatan_tatah_bangkal_masuk_kota
 CAMERA_SOURCE = CAMERAS["jalan_gubernur_soebardjo_jembatan_tatah_bangkal_masuk_kota"]["source_code"]
 CAMERA_NAME = CAMERAS["jalan_gubernur_soebardjo_jembatan_tatah_bangkal_masuk_kota"]["name"]
 
-API_BASE = os.getenv("API_BASE", "http://localhost:8080/api/ai")
+API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8080/api/ai")
 # Token pengirim dari environment (.env). Prioritaskan AI_CORE_INGEST_TOKEN untuk dashboard utama.
 API_TOKEN = os.getenv("AI_CORE_INGEST_TOKEN") or os.getenv("AI_INGEST_TOKEN", "")
 

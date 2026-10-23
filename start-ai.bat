@@ -1,11 +1,10 @@
 @echo off
-title SiMover Multi-Camera AI Worker
+title SiMover AI Worker (Jl. Gubernur Soebardjo)
 echo ============================================================
-echo   MENYALAKAN AI WORKER MULTI-KAMERA SIMOVER
-echo   Kamera 1: Jl. Gubernur Soebardjo (Jembatan Tatah Bangkal)
-echo   Kamera 2: Simpang Sultan Adam - Sungai Andai
-echo   Target API: http://localhost:8080/api/ai
+echo   MENYALAKAN AI WORKER SIMOVER
+echo   Kamera Deteksi : Jl. Gubernur Soebardjo (Jembatan Tatah Bangkal)
+echo   Target API     : http://127.0.0.1:8080/api/ai
 echo ============================================================
 echo.
-python -m ai_worker.worker
+python -m ai_worker.worker --camera soebardjo
 pause

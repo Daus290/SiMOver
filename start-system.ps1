@@ -156,15 +156,17 @@ function Find-XamppMysql {
     )
     foreach ($cand in $candidates) {
         if (Test-Path $cand) {
-            $binDir = Split-Path $cand
-            $xamppDir = Split-Path $binDir
-            $myIni = Join-Path $binDir 'my.ini'
-            $dataDir = Join-Path $xamppDir 'mysql\data'
+            $binDir   = Split-Path $cand           # C:\xampp\mysql\bin
+            $mysqlDir = Split-Path $binDir         # C:\xampp\mysql
+            $xamppDir = Split-Path $mysqlDir       # C:\xampp
+            $myIni    = Join-Path $binDir 'my.ini' # C:\xampp\mysql\bin\my.ini
+            $dataDir  = Join-Path $mysqlDir 'data' # C:\xampp\mysql\data
             return @{
-                Exe   = $cand
-                Ini   = $myIni
-                Xampp = $xamppDir
-                Data  = $dataDir
+                Exe      = $cand
+                Ini      = $myIni
+                Xampp    = $xamppDir
+                MysqlDir = $mysqlDir
+                Data     = $dataDir
             }
         }
     }
@@ -202,16 +204,13 @@ function Start-LocalDatabase {
     }
 
     Write-Host "-> Menyalakan MySQL/MariaDB XAMPP di latar belakang..." -ForegroundColor Cyan
-    $mysqlCmd = "`"$($mysqlInfo.Exe)`" --defaults-file=`"$($mysqlInfo.Ini)`" --standalone"
-    
     try {
-        $wmi = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
-            CommandLine      = $mysqlCmd
-            CurrentDirectory = $mysqlInfo.Xampp
-        }
-        if ($wmi.ReturnValue -ne 0) {
-            $wmi = Invoke-WmiMethod -Class Win32_Process -Name Create -ArgumentList $mysqlCmd
-        }
+        $proc = Start-Process -FilePath $mysqlInfo.Exe `
+            -ArgumentList "--defaults-file=`"$($mysqlInfo.Ini)`" --standalone" `
+            -WorkingDirectory $mysqlInfo.Xampp `
+            -WindowStyle Hidden `
+            -PassThru
+        $startedPid = $proc.Id
     } catch {
         return @{
             Success = $false
@@ -220,9 +219,9 @@ function Start-LocalDatabase {
         }
     }
 
-    # Tunggu kesiapan TCP port 3306 hingga 10 detik
+    # Tunggu kesiapan TCP port 3306 hingga 15 detik
     $ready = $false
-    for ($i = 0; $i -lt 20; $i++) {
+    for ($i = 0; $i -lt 30; $i++) {
         Start-Sleep -Milliseconds 500
         if (Test-TcpPort -HostName '127.0.0.1' -Port $Port -TimeoutMs 500) {
             $ready = $true
@@ -231,8 +230,8 @@ function Start-LocalDatabase {
     }
 
     if ($ready) {
-        if ($wmi.ProcessId) {
-            Set-Content -Path $mysqlPidFile -Value $wmi.ProcessId -Force
+        if ($startedPid) {
+            Set-Content -Path $mysqlPidFile -Value $startedPid -Force
         }
         return @{
             Success = $true
@@ -243,7 +242,7 @@ function Start-LocalDatabase {
         return @{
             Success = $false
             Status  = 'gagal merespons'
-            Detail  = "mysqld dijalankan tetapi port $Port belum merespons dalam 10 detik. Periksa $($mysqlInfo.Data)\mysql_error.log"
+            Detail  = "mysqld dijalankan tetapi port $Port belum merespons dalam 15 detik. Periksa $($mysqlInfo.Data)\mysql_error.log"
         }
     }
 }
@@ -351,7 +350,7 @@ function Start-LocalWebServer {
     }
 
     Write-Host "-> Menyalakan server web CodeIgniter 4 (port $Port, multi-worker)..." -ForegroundColor Cyan
-    $cmdLine = "cmd.exe /c `"set PHP_CLI_SERVER_WORKERS=4&& `"$PhpExe`" spark serve --host localhost --port $Port > `"$serveLog`" 2>&1`""
+    $cmdLine = "cmd.exe /c `"set PHP_CLI_SERVER_WORKERS=4&& `"$PhpExe`" spark serve --host 127.0.0.1 --port $Port > `"$serveLog`" 2>&1`""
 
     try {
         $wmi = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
@@ -527,15 +526,39 @@ function Show-SystemSummary {
         Write-Host "Dilewati (NVR belum terjangkau)" -ForegroundColor Yellow
     }
 
-    # 5. Lokasi Log & Cache
+    # 5. Status AI Worker
+    $aiRunning = $false
+    $workerPidFile = Join-Path $rootDir "ai_worker\worker.pid"
+    if (Test-Path $workerPidFile) {
+        $wPid = Get-Content $workerPidFile -ErrorAction SilentlyContinue
+        if ($wPid) {
+            $wProc = Get-Process -Id $wPid -ErrorAction SilentlyContinue
+            if ($wProc -and $wProc.ProcessName -like '*python*') { $aiRunning = $true }
+        }
+    }
+    if (-not $aiRunning) {
+        $pyProcs = Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like "*ai_worker.worker*" }
+        if ($pyProcs) { $aiRunning = $true }
+    }
+    $aiColor = if ($aiRunning) { 'Green' } else { 'Yellow' }
+    Write-Host "AI Worker : " -NoNewline
+    Write-Host (if ($aiRunning) { "AKTIF (Kamera: Jl. Gubernur Soebardjo)" } else { "TIDAK AKTIF (Jalankan .\start-ai.bat)" }) -ForegroundColor $aiColor
+
+    # 6. Lokasi Log & Cache
     Write-Host "Log Web   : writable\logs\spark_serve.log" -ForegroundColor Gray
-    Write-Host "AI Worker : Jalankan .\start-ai.bat atau 'python -m ai_worker.worker'" -ForegroundColor Cyan
     Write-Host "============================================================`n" -ForegroundColor Cyan
 }
 
 # 13. Fungsi Menghentikan Sistem
 function Stop-EntireSystem {
     Write-Host "`n=== MENGHENTIKAN SISTEM MONITORING DISHUB ===" -ForegroundColor Yellow
+
+    # 0. Hentikan AI Worker
+    $aiScript = Join-Path $rootDir 'scripts\ai_worker.ps1'
+    if (Test-Path $aiScript) {
+        Write-Host "-> Menghentikan AI Worker..." -ForegroundColor Cyan
+        & powershell -NoProfile -ExecutionPolicy Bypass -File "$aiScript" stop
+    }
 
     # 1. Hentikan Relay CCTV
     if (Test-Path $relayScript) {
@@ -674,7 +697,20 @@ try {
         Write-Host "============================================================" -ForegroundColor Yellow
     }
 
-    # E. Tampilkan Ringkasan Akhir
+    # E. AI Worker Multi-Kamera
+    Write-Host "-> Menyalakan AI Worker (Deteksi Kendaraan Niaga & Over Dimension)..." -ForegroundColor Cyan
+    $aiScript = Join-Path $rootDir 'scripts\ai_worker.ps1'
+    if (Test-Path $aiScript) {
+        & powershell -NoProfile -ExecutionPolicy Bypass -File "$aiScript" start
+    } else {
+        $sysPython = Get-Command python -ErrorAction SilentlyContinue
+        if ($sysPython) {
+            $pyPath = if ($sysPython.Source) { $sysPython.Source } else { $sysPython.Definition }
+            Start-Process -FilePath $pyPath -ArgumentList "-u", "-m", "ai_worker.worker", "--camera", "soebardjo" -WorkingDirectory $rootDir -WindowStyle Hidden
+        }
+    }
+
+    # F. Tampilkan Ringkasan Akhir
     Show-SystemSummary -WebResult $webResult -DbResult $dbResult -NvrStatus $nvrStatus -NvrHost $nvrHost -NvrPort $nvrPort -CctvResult $cctvHealth
 
 } finally {
